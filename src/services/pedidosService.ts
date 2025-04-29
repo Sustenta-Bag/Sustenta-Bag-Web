@@ -7,11 +7,12 @@ export interface Pedido {
   produto: string;
   data: string;
   valor: number;
-  status: PedidoStatus;
-  endereco?: string;
+  status: "pendente" | "aceito" | "concluido" | "recusado";
   telefone?: string;
+  endereco?: string;
   observacoes?: string;
   quantidadeSacolas?: number;
+  historico?: { status: string; data: string; hora: string }[];
 }
 
 // Mock de dados para desenvolvimento frontend
