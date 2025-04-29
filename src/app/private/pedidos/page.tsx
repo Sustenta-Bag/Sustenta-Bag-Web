@@ -5,7 +5,6 @@ import React, { useEffect, useState } from "react";
 import Navbar from "@/components/navbar/Navbar";
 import SecondaryButton from "@/components/button/SecondaryButton";
 import PrimaryButton from "@/components/button/PrimaryButton";
-import FormInput from "@/components/input/FormInput";
 import AlertComponent from "@/components/alertComponent/Alert";
 import ModalComponent from "@/components/Modal/ModalComponent";
 import { Pedido, pedidosService } from "@/services/pedidosService";

@@ -2,11 +2,20 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import {
+  FaHome,
+  FaBox,
+  FaList,
+  FaCog,
+  FaShoppingBag,
+  FaUserCog,
+} from "react-icons/fa";
 
 interface NavLink {
   text: string;
   href: string;
   icon?: string;
+  iconComponent?: React.ReactNode;
   position?: "left" | "right";
 }
 
@@ -19,13 +28,42 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({
   title = "Logo",
   links = [
-    { text: "Link 1", href: "#", icon: "bx-home" },
-    { text: "Link 2", href: "#", icon: "bx-box" },
-    { text: "Link 3", href: "#", icon: "bx-list-ul" },
-    { text: "Link 4", href: "#", icon: "bx-cog", position: "right" },
+    { text: "Link 1", href: "#", icon: "home" },
+    { text: "Link 2", href: "#", icon: "box" },
+    { text: "Link 3", href: "#", icon: "list" },
+    { text: "Link 4", href: "#", icon: "cog", position: "right" },
   ],
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Função para obter o ícone correspondente baseado no nome
+  const getIconComponent = (iconName?: string) => {
+    if (!iconName) return null;
+
+    switch (iconName) {
+      case "bx-home":
+      case "home":
+        return <FaHome className="text-lg" />;
+      case "bx-box":
+      case "bx-package":
+      case "box":
+        return <FaBox className="text-lg" />;
+      case "bx-list-ul":
+      case "list":
+        return <FaList className="text-lg" />;
+      case "bx-cog":
+      case "cog":
+        return <FaCog className="text-lg" />;
+      case "bx-shopping-bag":
+      case "shopping-bag":
+        return <FaShoppingBag className="text-lg" />;
+      case "bx-user-cog":
+      case "user-cog":
+        return <FaUserCog className="text-lg" />;
+      default:
+        return null;
+    }
+  };
 
   // Separar links por posição
   const leftLinks = links.filter((link) => link.position !== "right");
@@ -80,7 +118,7 @@ const Navbar: React.FC<NavbarProps> = ({
       `}
       onClick={isMobile ? toggleMenu : undefined}
     >
-      {link.icon && <i className={`bx ${link.icon}`}></i>}
+      {link.iconComponent || getIconComponent(link.icon)}
       <span>{link.text}</span>
     </Link>
   );

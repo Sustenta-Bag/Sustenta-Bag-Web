@@ -18,6 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (cnpj: string, senha: string) => Promise<boolean>;
   logout: () => void;
   register: (newUser: {
@@ -50,29 +51,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState(initialUsers);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   // Verificar se o usuário já está autenticado quando o componente é montado
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
+    const loadUserData = async () => {
+      setIsLoading(true);
       try {
-        setUser(JSON.parse(storedUser));
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+
+        // Recuperar lista de usuários do localStorage se existir
+        const storedUsers = localStorage.getItem("users");
+        if (storedUsers) {
+          setUsers(JSON.parse(storedUsers));
+        }
       } catch (error) {
         console.error("Erro ao recuperar usuário:", error);
         localStorage.removeItem("user");
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
 
-    // Recuperar lista de usuários do localStorage se existir
-    const storedUsers = localStorage.getItem("users");
-    if (storedUsers) {
-      try {
-        setUsers(JSON.parse(storedUsers));
-      } catch (error) {
-        console.error("Erro ao recuperar lista de usuários:", error);
-      }
-    }
+    loadUserData();
   }, []);
 
   const login = async (cnpj: string, senha: string): Promise<boolean> => {
@@ -126,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         user,
         isAuthenticated: !!user,
+        isLoading,
         login,
         logout,
         register,

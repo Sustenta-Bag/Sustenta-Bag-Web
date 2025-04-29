@@ -1,18 +1,21 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
+import { FaTimes } from "react-icons/fa";
 
 interface ModalComponentProps {
   triggerButton?: ReactNode;
+  textButton?: ReactNode;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  title: string;
-  children: ReactNode;
+  title?: string;
+  children?: ReactNode;
   footer?: ReactNode;
   maxWidth?: string;
 }
 
 const ModalComponent: React.FC<ModalComponentProps> = ({
   triggerButton,
+  textButton,
   isOpen,
   onOpenChange,
   title,
@@ -20,14 +23,18 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
   footer,
   maxWidth = "max-w-md",
 }) => {
-  // Verifica se o modal é controlado externamente ou internamente
-  const isControlled = isOpen !== undefined && onOpenChange !== undefined;
+  const [isOpenState, setIsOpenState] = useState(false);
+
+  // Controlamos o estado interno quando não fornecido props
+  const open = isOpen !== undefined ? isOpen : isOpenState;
+  const handleOpenChange = onOpenChange || setIsOpenState;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       {triggerButton && (
         <Dialog.Trigger asChild>{triggerButton}</Dialog.Trigger>
       )}
+      {textButton && <Dialog.Trigger asChild>{textButton}</Dialog.Trigger>}
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" />
         <Dialog.Content
@@ -39,7 +46,7 @@ const ModalComponent: React.FC<ModalComponentProps> = ({
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="text-gray-500 hover:text-gray-700">
-                <i className="bx bx-x text-xl"></i>
+                <FaTimes className="text-xl" />
               </button>
             </Dialog.Close>
           </div>
