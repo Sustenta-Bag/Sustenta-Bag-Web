@@ -69,11 +69,7 @@ const PageComponent = () => {
 
       <div className="bg-white rounded-xl shadow p-6 space-y-4 max-w-xl w-full">
         <h2 className="text-xl font-semibold">Exemplo de Modal</h2>
-        <ModalComponent
-          textButton="Abrir Modal"
-          titleModal="Título do Modal"
-          textModal="Esse é o conteúdo do modal."
-        />
+        <ModalComponent textButton="Abrir Modal" title="Título do Modal" />
       </div>
 
       {/* Alerta sempre renderizado na tela, com visibilidade controlada pelo estado */}

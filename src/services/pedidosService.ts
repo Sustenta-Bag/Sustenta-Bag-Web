@@ -106,6 +106,140 @@ export const MOCK_PEDIDOS: Pedido[] = [
     telefone: "(11) 99632-1478",
     quantidadeSacolas: 5,
   },
+  {
+    id: "PED-009",
+    cliente: "Paula Teixeira",
+    produto: "Sacola Ecológica Média",
+    data: "20/04/2025",
+    valor: 19.9,
+    status: "pendente",
+    endereco: "Rua Bela Vista, 222",
+    telefone: "(11) 96587-1247",
+    quantidadeSacolas: 4,
+  },
+  {
+    id: "PED-010",
+    cliente: "Eduardo Ramos",
+    produto: "Kit Sacolas Sustentáveis",
+    data: "18/04/2025",
+    valor: 42.8,
+    status: "aceito",
+    endereco: "Av. das Nações, 900",
+    telefone: "(11) 97214-8874",
+    quantidadeSacolas: 8,
+  },
+  {
+    id: "PED-011",
+    cliente: "Beatriz Martins",
+    produto: "Sacola Ecológica Pequena",
+    data: "17/04/2025",
+    valor: 15.5,
+    status: "concluido",
+    endereco: "Rua do Sol, 75",
+    telefone: "(11) 96412-7789",
+    quantidadeSacolas: 3,
+  },
+  {
+    id: "PED-012",
+    cliente: "Ricardo Lima",
+    produto: "Sacola Ecológica Grande",
+    data: "15/04/2025",
+    valor: 25.9,
+    status: "recusado",
+    endereco: "Rua Verdejante, 321",
+    telefone: "(11) 97132-4488",
+    observacoes: "Endereço incorreto",
+    quantidadeSacolas: 5,
+  },
+  {
+    id: "PED-013",
+    cliente: "Luciana Dias",
+    produto: "Sacola Ecológica Média",
+    data: "13/04/2025",
+    valor: 19.9,
+    status: "pendente",
+    endereco: "Rua Esperança, 88",
+    telefone: "(11) 97321-4487",
+    quantidadeSacolas: 4,
+  },
+  {
+    id: "PED-014",
+    cliente: "André Barbosa",
+    produto: "Kit Sacolas Sustentáveis",
+    data: "12/04/2025",
+    valor: 42.8,
+    status: "concluido",
+    endereco: "Av. Industrial, 300",
+    telefone: "(11) 97548-9632",
+    quantidadeSacolas: 8,
+  },
+  {
+    id: "PED-015",
+    cliente: "Sabrina Rocha",
+    produto: "Sacola Ecológica Grande",
+    data: "10/04/2025",
+    valor: 25.9,
+    status: "aceito",
+    endereco: "Rua dos Cravos, 154",
+    telefone: "(11) 98325-7412",
+    quantidadeSacolas: 5,
+  },
+  {
+    id: "PED-016",
+    cliente: "Renato Cunha",
+    produto: "Sacola Ecológica Pequena",
+    data: "09/04/2025",
+    valor: 15.5,
+    status: "pendente",
+    endereco: "Rua Horizonte Azul, 67",
+    telefone: "(11) 96258-3541",
+    quantidadeSacolas: 3,
+  },
+  {
+    id: "PED-017",
+    cliente: "Mariana Torres",
+    produto: "Sacola Ecológica Média",
+    data: "07/04/2025",
+    valor: 19.9,
+    status: "recusado",
+    endereco: "Travessa das Águas, 908",
+    telefone: "(11) 97621-0045",
+    observacoes: "Produto fora de estoque",
+    quantidadeSacolas: 4,
+  },
+  {
+    id: "PED-018",
+    cliente: "Thiago Ferreira",
+    produto: "Kit Sacolas Sustentáveis",
+    data: "05/04/2025",
+    valor: 42.8,
+    status: "concluido",
+    endereco: "Av. do Progresso, 501",
+    telefone: "(11) 98412-7754",
+    quantidadeSacolas: 8,
+  },
+  {
+    id: "PED-019",
+    cliente: "Carla Nogueira",
+    produto: "Sacola Ecológica Pequena",
+    data: "03/04/2025",
+    valor: 15.5,
+    status: "aceito",
+    endereco: "Rua da União, 12",
+    telefone: "(11) 98124-3367",
+    quantidadeSacolas: 3,
+  },
+  {
+    id: "PED-020",
+    cliente: "Fábio Andrade",
+    produto: "Sacola Ecológica Grande",
+    data: "01/04/2025",
+    valor: 25.9,
+    status: "pendente",
+    endereco: "Av. Brasil, 777",
+    telefone: "(11) 98763-1123",
+    quantidadeSacolas: 5,
+  },
 ];
 
 // Serviço para gerenciar os pedidos
@@ -128,8 +262,40 @@ export const pedidosService = {
   obterPorStatus: (status: PedidoStatus): Pedido[] => {
     return MOCK_PEDIDOS.filter((pedido) => pedido.status === status);
   },
+  // Adicionar ao histórico de um pedido
+  adicionarAoHistorico: (
+    id: string,
+    status: PedidoStatus
+  ): { status: string; data: string; hora: string }[] | null => {
+    const pedidoIndex = MOCK_PEDIDOS.findIndex((p) => p.id === id);
+    if (pedidoIndex === -1) return null;
 
-  // Atualizar status de um pedido
+    const dataAtual = new Date();
+    const dataFormatada = `${String(dataAtual.getDate()).padStart(
+      2,
+      "0"
+    )}/${String(dataAtual.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}/${dataAtual.getFullYear()}`;
+    const horaFormatada = `${String(dataAtual.getHours()).padStart(
+      2,
+      "0"
+    )}:${String(dataAtual.getMinutes()).padStart(2, "0")}`;
+
+    if (!MOCK_PEDIDOS[pedidoIndex].historico) {
+      MOCK_PEDIDOS[pedidoIndex].historico = [];
+    }
+
+    MOCK_PEDIDOS[pedidoIndex].historico!.push({
+      status,
+      data: dataFormatada,
+      hora: horaFormatada,
+    });
+
+    return MOCK_PEDIDOS[pedidoIndex].historico!;
+  },
+
   atualizarStatus: (id: string, novoStatus: PedidoStatus): Pedido | null => {
     const pedidoIndex = MOCK_PEDIDOS.findIndex((p) => p.id === id);
 
@@ -137,6 +303,33 @@ export const pedidosService = {
 
     // Em um ambiente real, aqui seria uma chamada PUT para a API
     MOCK_PEDIDOS[pedidoIndex].status = novoStatus;
+
+    // Adicionar ao histórico diretamente aqui
+    // Obter data e hora atuais formatadas
+    const dataAtual = new Date();
+    const dataFormatada = `${String(dataAtual.getDate()).padStart(
+      2,
+      "0"
+    )}/${String(dataAtual.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}/${dataAtual.getFullYear()}`;
+    const horaFormatada = `${String(dataAtual.getHours()).padStart(
+      2,
+      "0"
+    )}:${String(dataAtual.getMinutes()).padStart(2, "0")}`;
+
+    // Se não existir histórico, criar um array vazio
+    if (!MOCK_PEDIDOS[pedidoIndex].historico) {
+      MOCK_PEDIDOS[pedidoIndex].historico = [];
+    }
+
+    // Adicionar novo registro ao histórico
+    MOCK_PEDIDOS[pedidoIndex].historico!.push({
+      status: novoStatus,
+      data: dataFormatada,
+      hora: horaFormatada,
+    });
 
     return MOCK_PEDIDOS[pedidoIndex];
   },
