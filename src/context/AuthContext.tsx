@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authService, RegisterRequest } from "../services/authService";
 
 interface User {
+  id?: number;
   email: string;
   legalName?: string;
   cnpj?: string;
