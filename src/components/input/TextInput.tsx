@@ -7,6 +7,8 @@ interface TextInputProps {
   type?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+  maxLength?: number;
 }
 
 const TextInput: React.FC<TextInputProps> = ({
@@ -15,18 +17,21 @@ const TextInput: React.FC<TextInputProps> = ({
   type = "text",
   value,
   onChange,
+  required = false,
+  maxLength,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
   const shouldFloat = isFocused || value;
 
   return (
-    <div className="relative w-full">
-      <input
+    <div className="relative w-full">      <input
         type={type}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        required={required}
+        maxLength={maxLength}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         className={clsx(
@@ -43,6 +48,7 @@ const TextInput: React.FC<TextInputProps> = ({
         )}
       >
         {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </label>
     </div>
   );

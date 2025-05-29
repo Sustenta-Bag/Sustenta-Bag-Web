@@ -2,33 +2,60 @@
 import React, { useState } from "react";
 import PrimaryButton from "../button/PrimaryButton";
 import TextInput from "../input/TextInput";
+import Loading from "../loading/Loading";
 import AlertComponent from "../alertComponent/Alert";
+import { useAuth } from "@/context/AuthContext";
 
 interface LoginFormProps {
   onRegisterClick: () => void;
-  onLogin: (email: string, password: string) => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onLogin }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick }) => {
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [alert, setAlert] = useState({
     visible: false,
     texto: "",
     tipo: "info" as "success" | "info" | "warning" | "error",
   });
-
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       setAlert({
         visible: true,
-        texto: "Preencha email e senha.",
+        texto: "Por favor, preencha email e senha.",
         tipo: "warning",
       });
       return;
     }
 
-    onLogin(email, password);
+    setIsLoading(true);
+
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        setAlert({
+          visible: true,
+          texto: "Login realizado com sucesso! Redirecionando...",
+          tipo: "success",
+        });
+      } else {
+        setAlert({
+          visible: true,
+          texto: result.message || "Email ou senha incorretos. Tente novamente.",
+          tipo: "error",
+        });
+      }    } catch {
+      setAlert({
+        visible: true,
+        texto: "Erro de conexão. Verifique sua internet e tente novamente.",
+        tipo: "error",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const closeAlert = () => {
@@ -44,17 +71,28 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onLogin }) => {
             label="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
           <TextInput
             label="Senha"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <div className="flex gap-4 mt-4">
-            <PrimaryButton onClick={handleLogin}>Login</PrimaryButton>
-            <PrimaryButton onClick={onRegisterClick}>Cadastre-se</PrimaryButton>
+            required
+          />          <div className="flex gap-4 mt-4">
+            <PrimaryButton onClick={handleLogin} disabled={isLoading}>
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loading size="small" text="" />
+                  <span>Entrando...</span>
+                </div>
+              ) : (
+                "Login"
+              )}
+            </PrimaryButton>
+            <PrimaryButton onClick={onRegisterClick} disabled={isLoading}>
+              Cadastre-se
+            </PrimaryButton>
           </div>
 
           <p className="text-sm text-center mt-2">
