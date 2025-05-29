@@ -64,6 +64,7 @@ export const authService = {
         };
       }
     } catch (error) {
+      console.error('Erro ao fazer login:', error);
       return {
         success: false,
         message: 'Erro de conexão com o servidor',
@@ -96,6 +97,7 @@ export const authService = {
         };
       }
     } catch (error) {
+      console.error('Erro ao registrar:', error);
       return {
         success: false,
         message: 'Erro de conexão com o servidor',
