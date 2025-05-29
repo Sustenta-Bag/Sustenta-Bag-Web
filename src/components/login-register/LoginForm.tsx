@@ -6,12 +6,12 @@ import AlertComponent from "../alertComponent/Alert";
 
 interface LoginFormProps {
   onRegisterClick: () => void;
-  onLogin: (cnpj: string, senha: string) => void;
+  onLogin: (email: string, password: string) => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onLogin }) => {
-  const [cnpj, setCnpj] = useState("");
-  const [senha, setSenha] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [alert, setAlert] = useState({
     visible: false,
     texto: "",
@@ -19,16 +19,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onLogin }) => {
   });
 
   const handleLogin = () => {
-    if (!cnpj || !senha) {
+    if (!email || !password) {
       setAlert({
         visible: true,
-        texto: "Preencha CNPJ e senha.",
+        texto: "Preencha email e senha.",
         tipo: "warning",
       });
       return;
     }
 
-    onLogin(cnpj, senha);
+    onLogin(email, password);
   };
 
   const closeAlert = () => {
@@ -40,18 +40,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick, onLogin }) => {
       <div className="w-full flex flex-col items-center gap-6">
         <div className="w-1/2 max-w-md flex flex-col gap-3">
           <h1 className="text-4xl font-bold font-serif">Login</h1>
-          <p className="text-lg">Realize seu login</p>
-
-          <TextInput
-            label="CNPJ"
-            value={cnpj}
-            onChange={(e) => setCnpj(e.target.value)}
+          <p className="text-lg">Realize seu login</p>          <TextInput
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <TextInput
             label="Senha"
             type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
 
           <div className="flex gap-4 mt-4">

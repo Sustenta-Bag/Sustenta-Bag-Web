@@ -8,26 +8,43 @@ import AlertComponent from "../alertComponent/Alert";
 type RegisterFormProps = {
   onLoginClick: () => void;
   onRegister: (newUser: {
-    nomeFantasia: string;
     email: string;
+    password: string;
+    legalName: string;
     cnpj: string;
-    senha: string;
+    appName: string;
+    cellphone: string;
+    description: string;
+    delivery: boolean;
+    deliveryTax: number;
+    zipCode: string;
+    state: string;
+    city: string;
+    street: string;
+    number: string;
+    complement: string;
   }) => void;
 };
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
   const { register } = useAuth();
   const [formData, setFormData] = useState({
-    nomeFantasia: "",
-    cidade: "",
-    cnpj: "",
-    bairro: "",
     email: "",
-    rua: "",
-    senha: "",
-    numero: "",
+    password: "",
+    legalName: "",
+    cnpj: "",
+    appName: "",
+    cellphone: "",
+    description: "",
+    delivery: true,
+    deliveryTax: 5.99,
+    zipCode: "",
+    state: "",
+    city: "",
+    street: "",
+    number: "",
+    complement: "",
     confirmarSenha: "",
-    cep: "",
   });
   const [alert, setAlert] = useState({
     visible: false,
@@ -38,14 +55,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
-
   const handleSave = async () => {
-    // Validar campos obrigatórios
     if (
-      !formData.nomeFantasia ||
+      !formData.legalName ||
       !formData.email ||
       !formData.cnpj ||
-      !formData.senha
+      !formData.password ||
+      !formData.appName ||
+      !formData.cellphone ||
+      !formData.description ||
+      !formData.zipCode ||
+      !formData.state ||
+      !formData.city ||
+      !formData.street ||
+      !formData.number
     ) {
       setAlert({
         visible: true,
@@ -55,8 +78,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
       return;
     }
 
-    // Validar se as senhas conferem
-    if (formData.senha !== formData.confirmarSenha) {
+    if (formData.password !== formData.confirmarSenha) {
       setAlert({
         visible: true,
         texto: "As senhas não conferem.",
@@ -66,40 +88,42 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
     }
 
     try {
-      const success = await register({
-        nomeFantasia: formData.nomeFantasia,
+      const result = await register({
         email: formData.email,
+        password: formData.password,
+        legalName: formData.legalName,
         cnpj: formData.cnpj,
-        senha: formData.senha,
-        cidade: formData.cidade,
-        bairro: formData.bairro,
-        rua: formData.rua,
-        numero: formData.numero,
-        cep: formData.cep,
+        appName: formData.appName,
+        cellphone: formData.cellphone,
+        description: formData.description,
+        delivery: formData.delivery,
+        deliveryTax: formData.deliveryTax,
+        zipCode: formData.zipCode,
+        state: formData.state,
+        city: formData.city,
+        street: formData.street,
+        number: formData.number,
+        complement: formData.complement,
       });
 
-      if (success) {
-        // Cadastro realizado com sucesso
+      if (result.success) {
         setAlert({
           visible: true,
           texto: "Cadastro realizado com sucesso!",
           tipo: "success",
         });
 
-        // Chamar a função de callback após 2 segundos
         setTimeout(() => {
           onLoginClick();
         }, 2000);
       } else {
-        // CNPJ já existe
         setAlert({
           visible: true,
-          texto: "CNPJ já cadastrado. Por favor, utilize outro CNPJ.",
+          texto: result.message || "Erro ao realizar cadastro.",
           tipo: "error",
         });
       }
-    } catch (error) {
-      console.error("Erro ao cadastrar:", error);
+    } catch {
       setAlert({
         visible: true,
         texto: "Ocorreu um erro ao realizar o cadastro.",
@@ -129,14 +153,17 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
 
       <div className="w-full flex flex-col items-center gap-6">
         <div className="w-1/2 max-w-3xl flex flex-col gap-6">
-          <h1 className="text-4xl font-bold font-serif mb-6">Cadastro</h1>
-
-          <form className="flex gap-4">
+          <h1 className="text-4xl font-bold font-serif mb-6">Cadastro</h1>          <form className="flex gap-4">
             <div className="w-1/2 flex flex-col gap-2">
               <TextInput
-                label="Nome fantasia"
-                value={formData.nomeFantasia}
-                onChange={(e) => handleChange("nomeFantasia", e.target.value)}
+                label="Nome da Empresa"
+                value={formData.legalName}
+                onChange={(e) => handleChange("legalName", e.target.value)}
+              />
+              <TextInput
+                label="Nome do App"
+                value={formData.appName}
+                onChange={(e) => handleChange("appName", e.target.value)}
               />
               <TextInput
                 label="CNPJ"
@@ -149,10 +176,15 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
                 onChange={(e) => handleChange("email", e.target.value)}
               />
               <TextInput
+                label="Celular"
+                value={formData.cellphone}
+                onChange={(e) => handleChange("cellphone", e.target.value)}
+              />
+              <TextInput
                 type="password"
                 label="Senha"
-                value={formData.senha}
-                onChange={(e) => handleChange("senha", e.target.value)}
+                value={formData.password}
+                onChange={(e) => handleChange("password", e.target.value)}
               />
               <TextInput
                 type="password"
@@ -164,29 +196,39 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
 
             <div className="w-1/2 flex flex-col gap-2">
               <TextInput
-                label="Cidade"
-                value={formData.cidade}
-                onChange={(e) => handleChange("cidade", e.target.value)}
-              />
-              <TextInput
-                label="Bairro"
-                value={formData.bairro}
-                onChange={(e) => handleChange("bairro", e.target.value)}
-              />
-              <TextInput
-                label="Rua"
-                value={formData.rua}
-                onChange={(e) => handleChange("rua", e.target.value)}
-              />
-              <TextInput
-                label="Número"
-                value={formData.numero}
-                onChange={(e) => handleChange("numero", e.target.value)}
+                label="Descrição"
+                value={formData.description}
+                onChange={(e) => handleChange("description", e.target.value)}
               />
               <TextInput
                 label="CEP"
-                value={formData.cep}
-                onChange={(e) => handleChange("cep", e.target.value)}
+                value={formData.zipCode}
+                onChange={(e) => handleChange("zipCode", e.target.value)}
+              />
+              <TextInput
+                label="Estado"
+                value={formData.state}
+                onChange={(e) => handleChange("state", e.target.value)}
+              />
+              <TextInput
+                label="Cidade"
+                value={formData.city}
+                onChange={(e) => handleChange("city", e.target.value)}
+              />
+              <TextInput
+                label="Rua"
+                value={formData.street}
+                onChange={(e) => handleChange("street", e.target.value)}
+              />
+              <TextInput
+                label="Número"
+                value={formData.number}
+                onChange={(e) => handleChange("number", e.target.value)}
+              />
+              <TextInput
+                label="Complemento"
+                value={formData.complement}
+                onChange={(e) => handleChange("complement", e.target.value)}
               />
             </div>
           </form>

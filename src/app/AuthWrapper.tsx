@@ -27,41 +27,47 @@ const AuthWrapper: React.FC = () => {
       router.push(redirectPath);
     }
   }, [isAuthenticated, redirectPath, router]);
-
-  const handleLogin = async (cnpj: string, senha: string) => {
-    const success = await login(cnpj, senha);
-    if (success) {
-      // Login bem-sucedido
+  const handleLogin = async (email: string, password: string) => {
+    const result = await login(email, password);
+    if (result.success) {
       setAlert({
         visible: true,
         texto: "Login realizado com sucesso!",
         tipo: "success",
       });
 
-      // Redireciona após 2 segundos
       setTimeout(() => {
         router.push(redirectPath);
       }, 2000);
     } else {
       setAlert({
         visible: true,
-        texto: "CNPJ ou senha inválidos.",
+        texto: result.message || "Email ou senha inválidos.",
         tipo: "error",
       });
     }
   };
 
   const handleRegister = async (newUser: {
-    nomeFantasia: string;
     email: string;
+    password: string;
+    legalName: string;
     cnpj: string;
-    senha: string;
+    appName: string;
+    cellphone: string;
+    description: string;
+    delivery: boolean;
+    deliveryTax: number;
+    zipCode: string;
+    state: string;
+    city: string;
+    street: string;
+    number: string;
+    complement: string;
   }) => {
-    const success = await register({
-      ...newUser,
-    });
+    const result = await register(newUser);
 
-    if (success) {
+    if (result.success) {
       setAlert({
         visible: true,
         texto: "Cadastro realizado com sucesso! Por favor, faça login.",
@@ -74,7 +80,7 @@ const AuthWrapper: React.FC = () => {
     } else {
       setAlert({
         visible: true,
-        texto: "Erro ao realizar cadastro. CNPJ já cadastrado.",
+        texto: result.message || "Erro ao realizar cadastro.",
         tipo: "error",
       });
     }

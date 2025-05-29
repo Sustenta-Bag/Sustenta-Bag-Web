@@ -1,11 +1,10 @@
 {
   "name": "front-empresa",
   "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
+  "private": true,  "scripts": {
+    "dev": "next dev -p 4079",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 4079",
     "lint": "next lint"
   },
   "dependencies": {
