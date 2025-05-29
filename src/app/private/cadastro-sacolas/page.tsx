@@ -4,9 +4,15 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/navbar/Navbar";
 import Loading from "@/components/loading/Loading";
-import { bagsService, Bag, CreateBagRequest } from "@/services/bagsService";
+import {
+  bagsService,
+  Bag,
+  CreateBagRequest,
+  UpdateBagRequest,
+} from "@/services/bagsService";
 import Swal from "sweetalert2";
 import Image from "next/image";
+import EditBagModal from "@/components/Modal/EditBagModal";
 
 const CadastroSacolasPage = () => {
   const { user } = useAuth();
@@ -19,6 +25,9 @@ const CadastroSacolasPage = () => {
   const [bags, setBags] = useState<Bag[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingBags, setIsLoadingBags] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedBag, setSelectedBag] = useState<Bag | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const navLinks = [
     { text: "Página Inicial", href: "/private/homePage", icon: "bx-home" },
@@ -175,6 +184,47 @@ const CadastroSacolasPage = () => {
     });
   };
 
+  const openEditModal = (bag: Bag) => {
+    setSelectedBag(bag);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedBag(null);
+  };
+
+  const handleUpdateBag = async (id: number, bagData: UpdateBagRequest) => {
+    setIsUpdating(true);
+    try {
+      const response = await bagsService.updateBag(id, bagData);
+
+      if (response.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Sucesso",
+          text: "Sacola atualizada com sucesso!",
+        });
+        closeEditModal();
+        loadBags();
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Erro",
+          text: response.message || "Erro ao atualizar sacola",
+        });
+      }
+    } catch {
+      Swal.fire({
+        icon: "error",
+        title: "Erro",
+        text: "Erro de conexão",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -213,6 +263,7 @@ const CadastroSacolasPage = () => {
         </div>{" "}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="mb-6">
+            {" "}
             <h2 className="text-2xl font-bold mb-4 text-green-700">
               Cadastrar Nova Sacola
             </h2>
@@ -359,7 +410,7 @@ const CadastroSacolasPage = () => {
                       className="w-full h-full object-contain"
                     />
                   </div>{" "}
-                  <div className="p-4">
+                  <div className="p-4 relative">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h3 className="text-lg font-semibold mb-1">
@@ -376,12 +427,24 @@ const CadastroSacolasPage = () => {
                       >
                         {getStatusText(bag.status)}
                       </span>
-                    </div>{" "}
+                    </div>
+
                     <p className="text-sm text-gray-600 mb-3 line-clamp-3">
                       {bag.description}
-                    </p>{" "}
-                    <div className="text-xs text-gray-400">
-                      Cadastrada em: {formatDate(bag.createdAt)}
+                    </p>
+
+                    <div className="flex justify-between items-end">
+                      <div className="text-xs text-gray-400">
+                        Cadastrada em: {formatDate(bag.createdAt)}
+                      </div>{" "}
+                      <button
+                        onClick={() => openEditModal(bag)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors flex items-center gap-1"
+                        title="Editar sacola"
+                      >
+                        <i className="bx bx-edit text-lg"></i>
+                        <span className="text-xs font-medium">Editar</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -390,6 +453,14 @@ const CadastroSacolasPage = () => {
           )}
         </div>
       </div>
+
+      <EditBagModal
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+        bag={selectedBag}
+        onSave={handleUpdateBag}
+        isLoading={isUpdating}
+      />
     </div>
   );
 };

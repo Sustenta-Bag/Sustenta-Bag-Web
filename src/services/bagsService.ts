@@ -1,5 +1,5 @@
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api";
 
 export interface Bag {
   id: number;
@@ -12,6 +12,14 @@ export interface Bag {
 }
 
 export interface CreateBagRequest {
+  type: "Doce" | "Salgada" | "Mista";
+  price: number;
+  description: string;
+  idBusiness: number;
+  status: number;
+}
+
+export interface UpdateBagRequest {
   type: "Doce" | "Salgada" | "Mista";
   price: number;
   description: string;
@@ -41,7 +49,9 @@ class BagsService {
     };
   }
 
-  async createBag(bagData: CreateBagRequest): Promise<BagsServiceResponse<Bag>> {
+  async createBag(
+    bagData: CreateBagRequest
+  ): Promise<BagsServiceResponse<Bag>> {
     try {
       const response = await fetch(`${API_BASE_URL}/bags`, {
         method: "POST",
@@ -71,12 +81,17 @@ class BagsService {
     }
   }
 
-  async getBagsByBusiness(idBusiness: number): Promise<BagsServiceResponse<Bag[]>> {
+  async getBagsByBusiness(
+    idBusiness: number
+  ): Promise<BagsServiceResponse<Bag[]>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/bags/business/${idBusiness}`, {
-        method: "GET",
-        headers: this.getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/bags/business/${idBusiness}`,
+        {
+          method: "GET",
+          headers: this.getAuthHeaders(),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -93,6 +108,39 @@ class BagsService {
       };
     } catch (error) {
       console.error("Erro ao buscar sacolas:", error);
+      return {
+        success: false,
+        message: "Erro de conexão",
+      };
+    }
+  }
+
+  async updateBag(
+    id: number,
+    bagData: UpdateBagRequest
+  ): Promise<BagsServiceResponse<Bag>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/bags/${id}`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(bagData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return {
+          success: false,
+          message: errorData.message || "Erro ao atualizar sacola",
+        };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      console.error("Erro ao atualizar sacola:", error);
       return {
         success: false,
         message: "Erro de conexão",
