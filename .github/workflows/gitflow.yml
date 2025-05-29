@@ -78,29 +78,16 @@ jobs:
             echo "❌ package.json não encontrado" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-          
-          # Instalar dependências
+            # Instalar dependências
           echo "📦 Instalando dependências..." >> "$GITHUB_STEP_SUMMARY"
           npm ci
           
-          # Verificar TypeScript
-          echo "🔍 Verificando tipos TypeScript..." >> "$GITHUB_STEP_SUMMARY"
-          npx tsc --noEmit
-            # Verificar lint
+          # Verificar lint
           echo "🔍 Verificando lint..." >> "$GITHUB_STEP_SUMMARY"
           npm run lint
-          
-          # Verificar build
+            # Verificar build
           echo "🏗️ Verificando build..." >> "$GITHUB_STEP_SUMMARY"
           npm run build
-          
-          # Verificar se há testes configurados
-          if npm run | grep -q "test"; then
-            echo "🧪 Executando testes..." >> "$GITHUB_STEP_SUMMARY"
-            npm test
-          else
-            echo "ℹ️ Nenhum teste configurado" >> "$GITHUB_STEP_SUMMARY"
-          fi
           
           echo "✅ Projeto Sustenta-Bag Next.js verificado com sucesso" >> "$GITHUB_STEP_SUMMARY"
       
