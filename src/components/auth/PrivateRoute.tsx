@@ -9,17 +9,26 @@ export default function PrivateRoute({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Se não estiver autenticado e estiver tentando acessar uma rota privada
-    if (!isAuthenticated && pathname.startsWith("/private")) {
+    // Só faz o redirecionamento se não estiver carregando e não estiver autenticado
+    if (!isLoading && !isAuthenticated && pathname.startsWith("/private")) {
       // Redirecionar para a página de login com query param de retorno
       router.push(`/?redirect=${encodeURIComponent(pathname)}`);
     }
-  }, [isAuthenticated, pathname, router]);
+  }, [isAuthenticated, pathname, router, isLoading]);
+
+  // Se estiver carregando, mostra um estado de carregamento ou nada
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#FFF8E8]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   // Se não estiver autenticado, não renderiza o conteúdo
   if (!isAuthenticated && pathname.startsWith("/private")) {

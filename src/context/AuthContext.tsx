@@ -1,47 +1,52 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { authService, RegisterRequest } from "../services/authService";
 
 interface User {
-  nomeFantasia: string;
   email: string;
-  cnpj: string;
-  cidade?: string;
-  bairro?: string;
-  rua?: string;
-  numero?: string;
-  cep?: string;
+  legalName?: string;
+  cnpj?: string;
+  appName?: string;
+  cellphone?: string;
+  description?: string;
+  delivery?: boolean;
+  deliveryTax?: number;
+  address?: {
+    zipCode: string;
+    state: string;
+    city: string;
+    street: string;
+    number: string;
+    complement: string;
+  };
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (cnpj: string, senha: string) => Promise<boolean>;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   register: (newUser: {
-    nomeFantasia: string;
     email: string;
+    password: string;
+    legalName: string;
     cnpj: string;
-    senha: string;
-    cidade?: string;
-    bairro?: string;
-    rua?: string;
-    numero?: string;
-    cep?: string;
-  }) => Promise<boolean>;
+    appName: string;
+    cellphone: string;
+    description: string;
+    delivery: boolean;
+    deliveryTax: number;
+    zipCode: string;
+    state: string;
+    city: string;
+    street: string;
+    number: string;
+    complement: string;
+  }) => Promise<{ success: boolean; message?: string }>;
 }
-
-// Usuários simulados (em produção seria do backend)
-const initialUsers = [
-  {
-    nomeFantasia: "Padaria Central",
-    email: "contato@padariacentral.com",
-    cnpj: "1234567890001",
-    senha: "1234",
-  },
-];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -49,75 +54,108 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState(initialUsers);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Verificar se o usuário já está autenticado quando o componente é montado
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
+    const loadUserData = async () => {
+      setIsLoading(true);
       try {
-        setUser(JSON.parse(storedUser));
+        const storedUser = localStorage.getItem("user");
+        const storedToken = localStorage.getItem("token");
+        if (storedUser && storedToken) {
+          setUser(JSON.parse(storedUser));
+        }
       } catch (error) {
         console.error("Erro ao recuperar usuário:", error);
         localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
 
-    // Recuperar lista de usuários do localStorage se existir
-    const storedUsers = localStorage.getItem("users");
-    if (storedUsers) {
-      try {
-        setUsers(JSON.parse(storedUsers));
-      } catch (error) {
-        console.error("Erro ao recuperar lista de usuários:", error);
-      }
-    }
+    loadUserData();
   }, []);
-
-  const login = async (cnpj: string, senha: string): Promise<boolean> => {
-    // Simula uma chamada de API
-    const foundUser = users.find((u) => u.cnpj === cnpj && u.senha === senha);
-
-    if (foundUser) {
-      // Remove a senha antes de armazenar
-      const { senha: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem("user", JSON.stringify(userWithoutPassword));
-      return true;
+  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const response = await authService.login({ email, password });
+      
+      if (response.success && response.user && response.token) {
+        setUser(response.user);
+        localStorage.setItem("user", JSON.stringify(response.user));
+        localStorage.setItem("token", response.token);
+        return { success: true };
+      } else {
+        return { success: false, message: response.message };
+      }
+    } catch {
+      return { success: false, message: "Erro de conexão" };
     }
-    return false;
   };
 
   const register = async (newUser: {
-    nomeFantasia: string;
     email: string;
+    password: string;
+    legalName: string;
     cnpj: string;
-    senha: string;
-    cidade?: string;
-    bairro?: string;
-    rua?: string;
-    numero?: string;
-    cep?: string;
-  }): Promise<boolean> => {
-    // Verificar se já existe um usuário com o mesmo CNPJ
-    if (users.some((user) => user.cnpj === newUser.cnpj)) {
-      return false; // CNPJ já cadastrado
+    appName: string;
+    cellphone: string;
+    description: string;
+    delivery: boolean;
+    deliveryTax: number;
+    zipCode: string;
+    state: string;
+    city: string;
+    street: string;
+    number: string;
+    complement: string;
+  }): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const registerData: RegisterRequest = {
+        entityType: "business",
+        userData: {
+          email: newUser.email,
+          password: newUser.password,
+        },
+        entityData: {
+          legalName: newUser.legalName,
+          cnpj: newUser.cnpj,
+          appName: newUser.appName,
+          cellphone: newUser.cellphone,
+          description: newUser.description,
+          delivery: newUser.delivery,
+          deliveryTax: newUser.deliveryTax,
+          idAddress: {
+            zipCode: newUser.zipCode,
+            state: newUser.state,
+            city: newUser.city,
+            street: newUser.street,
+            number: newUser.number,
+            complement: newUser.complement,
+          },
+          status: 1,
+        },
+      };
+
+      const response = await authService.register(registerData);
+        if (response.success && response.user && response.token) {
+        setUser(response.user);
+        localStorage.setItem("user", JSON.stringify(response.user));
+        localStorage.setItem("token", response.token);
+        return { success: true };
+      } else {
+        return { success: false, message: response.message };
+      }
+    } catch {
+      return { success: false, message: "Erro de conexão" };
     }
-
-    // Adicionar o novo usuário ao array
-    const updatedUsers = [...users, newUser];
-    setUsers(updatedUsers);
-
-    // Salvar no localStorage
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
-
-    return true;
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     router.push("/");
   };
 
@@ -126,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         user,
         isAuthenticated: !!user,
+        isLoading,
         login,
         logout,
         register,
