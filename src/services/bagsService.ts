@@ -147,6 +147,33 @@ class BagsService {
       };
     }
   }
+
+  async deleteBag(id: number): Promise<BagsServiceResponse<void>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/bags/${id}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return {
+          success: false,
+          message: errorData.message || "Erro ao excluir sacola",
+        };
+      }
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error("Erro ao excluir sacola:", error);
+      return {
+        success: false,
+        message: "Erro de conexão",
+      };
+    }
+  }
 }
 
 export const bagsService = new BagsService();

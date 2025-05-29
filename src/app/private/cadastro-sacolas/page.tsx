@@ -28,6 +28,15 @@ const CadastroSacolasPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedBag, setSelectedBag] = useState<Bag | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [filters, setFilters] = useState({
+    status: "all" as "all" | "1" | "0",
+    type: "all" as "all" | "Doce" | "Salgada" | "Mista",
+  });
+  const [sortBy, setSortBy] = useState<"price" | "createdAt">("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [filteredAndSortedBags, setFilteredAndSortedBags] = useState<Bag[]>(
+    []
+  );
 
   const navLinks = [
     { text: "Página Inicial", href: "/private/homePage", icon: "bx-home" },
@@ -70,6 +79,33 @@ const CadastroSacolasPage = () => {
       loadBagsData();
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    let filtered = [...bags];
+
+    if (filters.status !== "all") {
+      filtered = filtered.filter(
+        (bag) => bag.status.toString() === filters.status
+      );
+    }
+
+    if (filters.type !== "all") {
+      filtered = filtered.filter((bag) => bag.type === filters.type);
+    }
+
+    filtered.sort((a, b) => {
+      if (sortBy === "price") {
+        return sortOrder === "asc" ? a.price - b.price : b.price - a.price;
+      } else {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+      }
+    });
+
+    setFilteredAndSortedBags(filtered);
+  }, [bags, filters, sortBy, sortOrder]);
+
   const loadBags = async () => {
     if (!user?.id) return;
 
@@ -222,6 +258,46 @@ const CadastroSacolasPage = () => {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteBag = async (bag: Bag) => {
+    const result = await Swal.fire({
+      title: "Confirmar exclusão",
+      text: `Tem certeza que deseja excluir a sacola "${bag.type}"? Esta ação não pode ser desfeita.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sim, excluir!",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await bagsService.deleteBag(bag.id);
+
+        if (response.success) {
+          Swal.fire({
+            icon: "success",
+            title: "Sucesso",
+            text: "Sacola excluída com sucesso!",
+          });
+          loadBags();
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Erro",
+            text: response.message || "Erro ao excluir sacola",
+          });
+        }
+      } catch {
+        Swal.fire({
+          icon: "error",
+          title: "Erro",
+          text: "Erro de conexão",
+        });
+      }
     }
   };
 
@@ -383,19 +459,98 @@ const CadastroSacolasPage = () => {
             </button>
           </div>
 
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <h3 className="text-lg font-semibold mb-4 text-gray-700">
+              Filtros e Ordenação
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={filters.status}                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      status: e.target.value as "all" | "1" | "0",
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="all">Todos</option>
+                  <option value="1">Ativa</option>
+                  <option value="0">Inativa</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo
+                </label>
+                <select
+                  value={filters.type}                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      type: e.target.value as "all" | "Doce" | "Salgada" | "Mista",
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="all">Todos</option>
+                  <option value="Doce">Doce</option>
+                  <option value="Salgada">Salgada</option>
+                  <option value="Mista">Mista</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ordenar por
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "price" | "createdAt")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="createdAt">Data de Criação</option>
+                  <option value="price">Preço</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ordem
+                </label>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="desc">Decrescente</option>
+                  <option value="asc">Crescente</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 text-sm text-gray-600">
+              Mostrando {filteredAndSortedBags.length} de {bags.length} sacola(s)
+            </div>
+          </div>
+
           {isLoadingBags ? (
             <div className="text-center py-10">
               <Loading size="large" text="Carregando sacolas..." />
-            </div>
-          ) : bags.length === 0 ? (
+            </div>          ) : filteredAndSortedBags.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-gray-500 text-lg">
-                Nenhuma sacola encontrada. Cadastre uma nova sacola!
+                {bags.length === 0 
+                  ? "Nenhuma sacola encontrada. Cadastre uma nova sacola!" 
+                  : "Nenhuma sacola corresponde aos filtros selecionados."}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {bags.map((bag) => (
+              {filteredAndSortedBags.map((bag) => (
                 <div
                   key={bag.id}
                   className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow"
@@ -431,20 +586,28 @@ const CadastroSacolasPage = () => {
 
                     <p className="text-sm text-gray-600 mb-3 line-clamp-3">
                       {bag.description}
-                    </p>
-
-                    <div className="flex justify-between items-end">
+                    </p>                    <div className="flex justify-between items-end">
                       <div className="text-xs text-gray-400">
                         Cadastrada em: {formatDate(bag.createdAt)}
-                      </div>{" "}
-                      <button
-                        onClick={() => openEditModal(bag)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors flex items-center gap-1"
-                        title="Editar sacola"
-                      >
-                        <i className="bx bx-edit text-lg"></i>
-                        <span className="text-xs font-medium">Editar</span>
-                      </button>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEditModal(bag)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors flex items-center gap-1"
+                          title="Editar sacola"
+                        >
+                          <i className="bx bx-edit text-lg"></i>
+                          <span className="text-xs font-medium">Editar</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBag(bag)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors flex items-center gap-1"
+                          title="Excluir sacola"
+                        >
+                          <i className="bx bx-trash text-lg"></i>
+                          <span className="text-xs font-medium">Excluir</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
