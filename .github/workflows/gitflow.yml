@@ -21,14 +21,9 @@ on:
         description: 'Ação a realizar'
         type: choice
         required: true
-        default: 'criar-tag'
+        default: 'promover-para-main'
         options:
-          - 'criar-tag'
           - 'promover-para-main'
-      branch:
-        description: 'Branch para criar tag (ex: develop)'
-        required: false
-        default: 'develop'
       dev_tag:
         description: 'Tag da develop para promover (ex: dev-012)'
         required: false
@@ -43,250 +38,13 @@ permissions:
   pull-requests: write
 
 jobs:
-  # Job 1: Criar tags automaticamente para a develop
-  tag-branch:
-    name: Criar Tag Automática
+  # Job: Promover alterações da develop para a main
+  promote-to-main:
+    name: Promover para Main
     if: |
       (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
       (github.event_name == 'push' && github.actor != 'github-actions[bot]') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'criar-tag')
-    runs-on: ubuntu-latest
-    outputs:
-      created_tag: ${{ steps.generate-tag.outputs.tag }}
-      branch_name: ${{ steps.branch.outputs.branch }}
-      pr_type: ${{ steps.pr-info.outputs.pr_type }}
-    
-    steps:
-      - name: Checkout do repositório
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Verificar integridade do projeto Sustenta-Bag
-        run: |
-          echo "### 🔍 Verificando integridade do projeto Sustenta-Bag Next.js" >> "$GITHUB_STEP_SUMMARY"
-          
-          # Verificar se package.json existe
-          if [ ! -f "package.json" ]; then
-            echo "❌ package.json não encontrado" >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-            # Instalar dependências
-          echo "📦 Instalando dependências..." >> "$GITHUB_STEP_SUMMARY"
-          npm ci
-          
-          # Verificar lint
-          echo "🔍 Verificando lint..." >> "$GITHUB_STEP_SUMMARY"
-          npm run lint
-            # Verificar build
-          echo "🏗️ Verificando build..." >> "$GITHUB_STEP_SUMMARY"
-          npm run build
-          
-          echo "✅ Projeto Sustenta-Bag Next.js verificado com sucesso" >> "$GITHUB_STEP_SUMMARY"
-      
-      - name: Configurar identidade Git
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-      
-      - name: Determinar branch atual
-        id: branch
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            # Uso da branch especificada manualmente
-            BRANCH="${{ github.event.inputs.branch }}"
-          elif [ "${{ github.event_name }}" == "pull_request" ]; then
-            # Uso da branch de destino do PR (deve ser develop)
-            BRANCH="${{ github.event.pull_request.base.ref }}"
-          else
-            # Uso da branch atual do push (deve ser develop)
-            BRANCH="${{ github.ref_name }}"
-          fi
-          
-          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
-          echo "Branch determinada: $BRANCH" >> "$GITHUB_STEP_SUMMARY"
-      
-      - name: Obter informações do PR
-        id: pr-info
-        if: github.event_name == 'pull_request'
-        run: |
-          # Obter a branch de origem do PR para determinar se era feature ou hotfix
-          PR_HEAD="${{ github.event.pull_request.head.ref }}"
-          
-          if [[ "$PR_HEAD" == feature/* ]]; then
-            PR_TYPE="feature"
-            FEATURE_NAME=$(echo $PR_HEAD | sed -E 's/feature\/(.*)/\1/')
-            echo "feature_name=$FEATURE_NAME" >> "$GITHUB_OUTPUT"
-          elif [[ "$PR_HEAD" == hotfix/* ]]; then
-            PR_TYPE="hotfix"
-            HOTFIX_NAME=$(echo $PR_HEAD | sed -E 's/hotfix\/(.*)/\1/')
-            echo "hotfix_name=$HOTFIX_NAME" >> "$GITHUB_OUTPUT"
-          else
-            PR_TYPE="other"
-          fi
-          
-          echo "pr_type=$PR_TYPE" >> "$GITHUB_OUTPUT"
-          echo "PR origem: $PR_HEAD, Tipo: $PR_TYPE" >> "$GITHUB_STEP_SUMMARY"
-      
-      - name: Gerar tag baseada na branch
-        id: generate-tag
-        run: |
-          BRANCH="${{ steps.branch.outputs.branch }}"
-          DATE=$(date +'%Y%m%d')
-          SHORT_HASH=$(git rev-parse --short HEAD)
-          
-          if [[ "$BRANCH" == "develop" ]]; then
-            # Verificar se veio de um PR
-            if [ "${{ github.event_name }}" == "pull_request" ]; then
-              PR_TYPE="${{ steps.pr-info.outputs.pr_type }}"
-              
-              if [[ "$PR_TYPE" == "feature" ]]; then
-                # Tag para feature mesclada à develop: feature-NOME-DATA-HASH
-                FEATURE_NAME="${{ steps.pr-info.outputs.feature_name }}"
-                TAG="feature-${FEATURE_NAME}-${DATE}-${SHORT_HASH}"
-              elif [[ "$PR_TYPE" == "hotfix" ]]; then
-                # Tag para hotfix mesclado à develop: hotfix-NOME-DATA-HASH
-                HOTFIX_NAME="${{ steps.pr-info.outputs.hotfix_name }}"
-                TAG="hotfix-${HOTFIX_NAME}-${DATE}-${SHORT_HASH}"
-              else
-                # Tag padrão para develop: dev-NNN
-                LATEST_DEV_TAG=$(git tag -l "dev-*" | sort -V | tail -n 1)
-                
-                if [ -z "$LATEST_DEV_TAG" ]; then
-                  # Se não houver tag, começar com dev-001
-                  DEV_NUMBER="001"
-                else
-                  # Incrementar o número da tag de develop
-                  DEV_NUMBER=$(echo $LATEST_DEV_TAG | sed -E 's/dev-([0-9]+).*/\1/')
-                  DEV_NUMBER=$(printf "%03d" $((10#$DEV_NUMBER + 1)))
-                fi
-                
-                TAG="dev-${DEV_NUMBER}"
-              fi
-            else
-              # Tag padrão para develop sem PR: dev-NNN
-              LATEST_DEV_TAG=$(git tag -l "dev-*" | sort -V | tail -n 1)
-              
-              if [ -z "$LATEST_DEV_TAG" ]; then
-                # Se não houver tag, começar com dev-001
-                DEV_NUMBER="001"
-              else
-                # Incrementar o número da tag de develop
-                DEV_NUMBER=$(echo $LATEST_DEV_TAG | sed -E 's/dev-([0-9]+).*/\1/')
-                DEV_NUMBER=$(printf "%03d" $((10#$DEV_NUMBER + 1)))
-              fi
-              
-              TAG="dev-${DEV_NUMBER}"
-            fi
-          else
-            # Tag genérica: branch-NOME-DATA-HASH
-            CLEAN_BRANCH=$(echo $BRANCH | sed -E 's/[^a-zA-Z0-9]/-/g')
-            TAG="branch-${CLEAN_BRANCH}-${DATE}-${SHORT_HASH}"
-          fi
-          
-          # Obter mensagem para a tag
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            # Usar título do PR
-            PR_TITLE="${{ github.event.pull_request.title }}"
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-            MESSAGE="PR #${PR_NUMBER}: ${PR_TITLE}"
-          else
-            # Usar última mensagem de commit, mas sanitizando para evitar problemas
-            # Remover caracteres problemáticos e limitar a 100 caracteres
-            MESSAGE=$(git log -1 --pretty=%s | sed 's/["\r\n]//g' | head -c 100)
-            
-            # Adicionar sufixo indicando commit
-            MESSAGE="Commit: ${MESSAGE}"
-          fi
-          
-          # Escrever saídas de forma segura
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "message=${MESSAGE}" >> "$GITHUB_OUTPUT"
-          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
-      
-      - name: Criar tag automática
-        run: |
-          TAG="${{ steps.generate-tag.outputs.tag }}"
-          MESSAGE="${{ steps.generate-tag.outputs.message }}"
-          BRANCH="${{ steps.generate-tag.outputs.branch }}"
-          
-          # Garantir que estamos na branch correta
-          git checkout $BRANCH
-          git pull origin $BRANCH
-          
-          # Criar a tag
-          git tag -a "$TAG" -m "$MESSAGE"
-          git push origin "$TAG"
-          
-          echo "### ✅ Tag criada com sucesso" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tag: $TAG" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Mensagem: $MESSAGE" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Branch: $BRANCH" >> "$GITHUB_STEP_SUMMARY"
-      
-      - name: Gerar changelog
-        run: |
-          TAG="${{ steps.generate-tag.outputs.tag }}"
-          BRANCH="${{ steps.generate-tag.outputs.branch }}"
-          
-          # Encontrar a penúltima tag do mesmo tipo para listar mudanças
-          if [[ "$TAG" == dev-* ]]; then
-            PREV_TAG=$(git tag -l "dev-*" | sort -V | tail -n 2 | head -n 1)
-            TAG_PATTERN="dev-*"
-          elif [[ "$TAG" == feature-* ]]; then
-            FEATURE_NAME=$(echo $TAG | sed -E 's/feature-([^-]+).*/\1/')
-            PREV_TAG=$(git tag -l "feature-${FEATURE_NAME}-*" | sort -V | tail -n 2 | head -n 1)
-            TAG_PATTERN="feature-${FEATURE_NAME}-*"
-          elif [[ "$TAG" == hotfix-* ]]; then
-            HOTFIX_NAME=$(echo $TAG | sed -E 's/hotfix-([^-]+).*/\1/')
-            PREV_TAG=$(git tag -l "hotfix-${HOTFIX_NAME}-*" | sort -V | tail -n 2 | head -n 1)
-            TAG_PATTERN="hotfix-${HOTFIX_NAME}-*" 
-          else
-            CLEAN_BRANCH=$(echo $BRANCH | sed -E 's/[^a-zA-Z0-9]/-/g')
-            PREV_TAG=$(git tag -l "branch-${CLEAN_BRANCH}-*" | sort -V | tail -n 2 | head -n 1)
-            TAG_PATTERN="branch-${CLEAN_BRANCH}-*"
-          fi
-          
-          echo "### Alterações na tag $TAG" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          
-          if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$TAG" ]; then
-            echo "Mudanças desde $PREV_TAG:" >> "$GITHUB_STEP_SUMMARY"
-            echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
-            git log --pretty=format:"- %s (%an)" $PREV_TAG..HEAD >> "$GITHUB_STEP_SUMMARY"
-            echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Primeiro conjunto de mudanças nesta branch" >> "$GITHUB_STEP_SUMMARY"
-            echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
-            git log --pretty=format:"- %s (%an)" >> "$GITHUB_STEP_SUMMARY"
-            echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
-          fi
-      
-      - name: Notificar equipe
-        run: |
-          TAG="${{ steps.generate-tag.outputs.tag }}"
-          BRANCH="${{ steps.generate-tag.outputs.branch }}"
-          
-          echo "### 📢 Nova tag criada" >> "$GITHUB_STEP_SUMMARY"
-          echo "A tag $TAG foi criada na branch $BRANCH." >> "$GITHUB_STEP_SUMMARY"
-          
-          if [[ "$BRANCH" == "develop" ]]; then
-            echo "Esta tag será automaticamente promovida para main no próximo passo do workflow." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-# Job 2: Promover alterações da develop para a main (sem alterações)
-  promote-to-main:
-    name: Promover para Main
-    needs: [tag-branch]
-    if: |
-      (needs.tag-branch.outputs.branch_name == 'develop' && success()) ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'promover-para-main') ||
+      (github.event_name == 'workflow_dispatch') ||
       (github.event_name == 'schedule')
     runs-on: ubuntu-latest
     
@@ -309,14 +67,10 @@ jobs:
           git fetch --tags --force
           
           # Prioridade:
-          # 1. Tag do job anterior
-          # 2. Tag especificada no workflow_dispatch
-          # 3. Última tag da develop
+          # 1. Tag especificada no workflow_dispatch
+          # 2. Última tag da develop
           
-          if [ -n "${{ needs.tag-branch.outputs.created_tag }}" ]; then
-            # Tag criada pelo job anterior
-            DEV_TAG="${{ needs.tag-branch.outputs.created_tag }}"
-          elif [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.dev_tag }}" ]; then
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.dev_tag }}" ]; then
             # Tag especificada manualmente
             DEV_TAG="${{ github.event.inputs.dev_tag }}"
           else
