@@ -9,7 +9,9 @@ import {
   FaCog,
   FaShoppingBag,
   FaUserCog,
+  FaSignOutAlt,
 } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
 
 interface NavLink {
   text: string;
@@ -35,7 +37,7 @@ const Navbar: React.FC<NavbarProps> = ({
   ],
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+  const { logout } = useAuth();
   // Função para obter o ícone correspondente baseado no nome
   const getIconComponent = (iconName?: string) => {
     if (!iconName) return null;
@@ -60,6 +62,9 @@ const Navbar: React.FC<NavbarProps> = ({
       case "bx-user-cog":
       case "user-cog":
         return <FaUserCog className="text-lg" />;
+      case "logout":
+      case "sign-out":
+        return <FaSignOutAlt className="text-lg" />;
       default:
         return null;
     }
@@ -94,10 +99,33 @@ const Navbar: React.FC<NavbarProps> = ({
       document.body.style.overflow = "auto";
     };
   }, [isMenuOpen]);
-
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+
+  const handleLogout = () => {
+    logout();
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+    }
+  };
+
+  const renderLogoutButton = (isMobile: boolean = false) => (
+    <button
+      onClick={handleLogout}
+      className={`
+        text-[#efefef] no-underline flex items-center gap-2 bg-transparent border-none cursor-pointer
+        ${
+          isMobile
+            ? "block w-full py-4 px-6 border-b border-gray-600 hover:bg-black/30 text-left"
+            : "px-4 py-[13px] hover:bg-black/30"
+        }
+      `}
+    >
+      <FaSignOutAlt className="text-lg" />
+      <span>Sair</span>
+    </button>
+  );
 
   // Renderiza um link com ícone
   const renderLink = (
@@ -152,11 +180,11 @@ const Navbar: React.FC<NavbarProps> = ({
         {/* Left-positioned links */}
         <div className="flex items-center justify-start flex-grow">
           {leftLinks.map((link, index) => renderLink(link, index))}
-        </div>
-
+        </div>{" "}
         {/* Right-positioned links */}
         <div className="flex items-center justify-end">
           {rightLinks.map((link, index) => renderLink(link, index))}
+          {renderLogoutButton()}
         </div>
       </div>
 
@@ -166,12 +194,15 @@ const Navbar: React.FC<NavbarProps> = ({
           className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden"
           onClick={toggleMenu}
         >
+          {" "}
           <div
             className="absolute w-full bg-[#333] top-[50px] left-0 h-auto max-h-[calc(100vh-50px)] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* All links in mobile view */}
             {links.map((link, index) => renderLink(link, index, true))}
+            {/* Logout button in mobile view */}
+            {renderLogoutButton(true)}
           </div>
         </div>
       )}
