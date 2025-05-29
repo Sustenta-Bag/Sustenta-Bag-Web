@@ -59,11 +59,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
     city: "",
     street: "",
     number: "",
-    complement: "",    confirmarSenha: "",
+    complement: "",
+    confirmarSenha: "",
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [alert, setAlert] = useState({
     visible: false,
     texto: "",
@@ -78,9 +79,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
     setFormData((prev) => ({ ...prev, cnpj: maskedValue }));
   };
 
-  const handleSelectChange = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-  };
+  const handleSelectChange =
+    (field: keyof typeof formData) =>
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    };
   const handleSave = async () => {
     if (
       !formData.legalName ||
@@ -149,7 +152,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
       if (result.success) {
         setAlert({
           visible: true,
-          texto: "Cadastro realizado com sucesso! Redirecionando para o login...",
+          texto:
+            "Cadastro realizado com sucesso! Redirecionando para o login...",
           tipo: "success",
         });
 
@@ -159,13 +163,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
       } else {
         setAlert({
           visible: true,
-          texto: result.message || "Erro ao realizar cadastro. Tente novamente.",
+          texto:
+            result.message || "Erro ao realizar cadastro. Tente novamente.",
           tipo: "error",
         });
-      }    } catch {
+      }
+    } catch {
       setAlert({
         visible: true,
-        texto: "Ocorreu um erro de conexão. Verifique sua internet e tente novamente.",
+        texto:
+          "Ocorreu um erro de conexão. Verifique sua internet e tente novamente.",
         tipo: "error",
       });
     } finally {
@@ -194,7 +201,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
 
       <div className="w-full flex flex-col items-center gap-6">
         <div className="w-1/2 max-w-3xl flex flex-col gap-6">
-          <h1 className="text-4xl font-bold font-serif mb-6">Cadastro</h1>          <form className="flex gap-4">            <div className="w-1/2 flex flex-col gap-2">
+          <h1 className="text-4xl font-bold font-serif mb-6">Cadastro</h1>{" "}
+          <form className="flex gap-4">
+            {" "}
+            <div className="w-1/2 flex flex-col gap-2">
               <TextInput
                 label="Nome da Empresa"
                 value={formData.legalName}
@@ -206,7 +216,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
                 value={formData.appName}
                 onChange={(e) => handleChange("appName", e.target.value)}
                 required
-              />              <TextInput
+              />{" "}
+              <TextInput
                 label="CNPJ"
                 value={formData.cnpj}
                 onChange={handleCNPJChange}
@@ -218,11 +229,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 required
-              />
+              />{" "}
               <TextInput
                 label="Celular"
                 value={formData.cellphone}
                 onChange={(e) => handleChange("cellphone", e.target.value)}
+                maxLength={11}
                 required
               />
               <TextInput
@@ -239,7 +251,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
                 onChange={(e) => handleChange("confirmarSenha", e.target.value)}
                 required
               />
-            </div>            <div className="w-1/2 flex flex-col gap-2">
+            </div>{" "}
+            <div className="w-1/2 flex flex-col gap-2">
               <TextInput
                 label="Descrição"
                 value={formData.description}
@@ -283,7 +296,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
                 onChange={(e) => handleChange("complement", e.target.value)}
               />
             </div>
-          </form>          <div className="flex gap-4 mt-6">
+          </form>{" "}
+          <div className="flex gap-4 mt-6">
             <PrimaryButton onClick={onLoginClick} disabled={isLoading}>
               Voltar
             </PrimaryButton>
