@@ -1,0 +1,21 @@
+# Ignore arquivos desnecessários no build do Docker
+node_modules
+npm-debug.log
+.next
+.git
+.gitignore
+README.md
+Dockerfile*
+docker-compose*
+.env*.local
+.vercel
+.DS_Store
+*.log
+coverage
+.nyc_output
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.dockerignore
