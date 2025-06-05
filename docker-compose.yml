@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  sustenta-bag-web:
+    container_name: sustenta-bag-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - sustenta-bag-network
+
+networks:
+  sustenta-bag-network:
+    driver: bridge
