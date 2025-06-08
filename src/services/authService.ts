@@ -17,6 +17,8 @@ export interface RegisterRequest {
     description: string;
     delivery: boolean;
     deliveryTax: number;
+    deliveryTime: number;
+    openingHours: string;
     idAddress: {
       zipCode: string;
       state: string;
@@ -32,6 +34,7 @@ export interface RegisterRequest {
 export interface AuthResponse {
   success: boolean;
   user?: any;
+  entity?: any;
   token?: string;
   message?: string;
 }
@@ -42,9 +45,9 @@ export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
@@ -54,53 +57,53 @@ export const authService = {
         return {
           success: true,
           user: result.user,
+          entity: result.entity,
           token: result.token,
         };
       } else {
         const error = await response.json();
         return {
           success: false,
-          message: error.message || 'Erro no login',
+          message: error.message || "Erro no login",
         };
       }
     } catch (error) {
-      console.error('Erro ao fazer login:', error);
+      console.error("Erro ao fazer login:", error);
       return {
         success: false,
-        message: 'Erro de conexão com o servidor',
+        message: "Erro de conexão com o servidor",
       };
     }
   },
-
   async register(data: RegisterRequest): Promise<AuthResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
-
       if (response.ok) {
         const result = await response.json();
         return {
           success: true,
           user: result.user,
+          entity: result.entity,
           token: result.token,
         };
       } else {
         const error = await response.json();
         return {
           success: false,
-          message: error.message || 'Erro no registro',
+          message: error.message || "Erro no registro",
         };
       }
     } catch (error) {
-      console.error('Erro ao registrar:', error);
+      console.error("Erro ao registrar:", error);
       return {
         success: false,
-        message: 'Erro de conexão com o servidor',
+        message: "Erro de conexão com o servidor",
       };
     }
   },
