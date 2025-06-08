@@ -17,6 +17,8 @@ export interface RegisterRequest {
     description: string;
     delivery: boolean;
     deliveryTax: number;
+    deliveryTime: number;
+    openingHours: string;
     idAddress: {
       zipCode: string;
       state: string;
@@ -82,7 +84,6 @@ export const authService = {
         },
         body: JSON.stringify(data),
       });
-
       if (response.ok) {
         const result = await response.json();
         return {
