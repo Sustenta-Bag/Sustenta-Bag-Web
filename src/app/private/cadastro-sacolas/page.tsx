@@ -47,14 +47,13 @@ const CadastroSacolasPage = () => {
       icon: "bx-shopping-bag",
     },
     { text: "Configurações", href: "/private/configuracao", icon: "bx-cog" },
-  ];
-  useEffect(() => {
+  ];  useEffect(() => {
     const loadBagsData = async () => {
-      if (!user?.id) return;
+      if (!user?.idBusiness) return;
 
       setIsLoadingBags(true);
       try {
-        const response = await bagsService.getBagsByBusiness(user.id);
+        const response = await bagsService.getBagsByBusiness(user.idBusiness);
         if (response.success && response.data) {
           setBags(response.data);
         } else {
@@ -75,10 +74,10 @@ const CadastroSacolasPage = () => {
       }
     };
 
-    if (user?.id) {
+    if (user?.idBusiness) {
       loadBagsData();
     }
-  }, [user?.id]);
+  }, [user?.idBusiness]);
 
   useEffect(() => {
     let filtered = [...bags];
@@ -105,13 +104,12 @@ const CadastroSacolasPage = () => {
 
     setFilteredAndSortedBags(filtered);
   }, [bags, filters, sortBy, sortOrder]);
-
   const loadBags = async () => {
-    if (!user?.id) return;
+    if (!user?.idBusiness) return;
 
     setIsLoadingBags(true);
     try {
-      const response = await bagsService.getBagsByBusiness(user.id);
+      const response = await bagsService.getBagsByBusiness(user.idBusiness);
       if (response.success && response.data) {
         setBags(response.data);
       } else {
@@ -142,11 +140,10 @@ const CadastroSacolasPage = () => {
       ...prev,
       [name]: name === "price" ? value : value,
     }));
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
+  };  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user?.id) {
+    if (!user?.idBusiness) {
       Swal.fire({
         icon: "error",
         title: "Erro",
@@ -180,7 +177,7 @@ const CadastroSacolasPage = () => {
         type: formData.type,
         price: price,
         description: formData.description,
-        idBusiness: user.id,
+        idBusiness: user.idBusiness,
         status: formData.status,
       };
 
