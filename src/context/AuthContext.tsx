@@ -30,7 +30,10 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   idBusiness: number | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   register: (newUser: {
     email: string;
@@ -66,10 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const storedUser = localStorage.getItem("user");
         const storedToken = localStorage.getItem("token");
         const storedIdBusiness = localStorage.getItem("idBusiness");
-        
+
         if (storedUser && storedToken) {
           const userData = JSON.parse(storedUser);
-          // Garantir que o idBusiness esteja presente
           if (storedIdBusiness && !userData.idBusiness) {
             userData.idBusiness = parseInt(storedIdBusiness);
           }
@@ -86,12 +88,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     loadUserData();
-  }, []);const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+  }, []);
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await authService.login({ email, password });
-      
+
       if (response.success && response.user && response.token) {
-        // Criar o objeto user combinando dados do user e entity
         const userData = {
           ...response.user,
           idBusiness: response.user.entityId || response.entity?.id,
@@ -103,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           delivery: response.entity?.delivery,
           deliveryTax: response.entity?.deliveryTax,
         };
-        
+
         setUser(userData);
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("token", response.token);
@@ -149,6 +154,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           description: newUser.description,
           delivery: newUser.delivery,
           deliveryTax: newUser.deliveryTax,
+          deliveryTime: 0,
+          openingHours: "08:00-18:00",
           idAddress: {
             zipCode: newUser.zipCode,
             state: newUser.state,
@@ -159,26 +166,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           },
           status: 1,
         },
-      };      const response = await authService.register(registerData);
-      if (response.success && response.user && response.token) {
-        // Criar o objeto user combinando dados do user e entity
-        const userData = {
-          ...response.user,
-          idBusiness: response.user.entityId || response.entity?.id,
-          legalName: response.entity?.legalName || newUser.legalName,
-          cnpj: response.entity?.cnpj || newUser.cnpj,
-          appName: response.entity?.appName || newUser.appName,
-          cellphone: response.entity?.cellphone || newUser.cellphone,
-          description: response.entity?.description || newUser.description,
-          delivery: response.entity?.delivery ?? newUser.delivery,
-          deliveryTax: response.entity?.deliveryTax ?? newUser.deliveryTax,
-        };
-        
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("token", response.token);
-        localStorage.setItem("idBusiness", String(userData.idBusiness));
-        return { success: true };
+      };
+      const response = await authService.register(registerData);
+
+      if (response.success && response.user) {
+        const loginResponse = await authService.login({
+          email: newUser.email,
+          password: newUser.password,
+        });
+
+        if (
+          loginResponse.success &&
+          loginResponse.user &&
+          loginResponse.token
+        ) {
+          const userData = {
+            ...loginResponse.user,
+            idBusiness: loginResponse.user.entityId || loginResponse.entity?.id,
+            legalName: loginResponse.entity?.legalName || newUser.legalName,
+            cnpj: loginResponse.entity?.cnpj || newUser.cnpj,
+            appName: loginResponse.entity?.appName || newUser.appName,
+            cellphone: loginResponse.entity?.cellphone || newUser.cellphone,
+            description:
+              loginResponse.entity?.description || newUser.description,
+            delivery: loginResponse.entity?.delivery ?? newUser.delivery,
+            deliveryTax:
+              loginResponse.entity?.deliveryTax ?? newUser.deliveryTax,
+          };
+
+          setUser(userData);
+          localStorage.setItem("user", JSON.stringify(userData));
+          localStorage.setItem("token", loginResponse.token);
+          localStorage.setItem("idBusiness", String(userData.idBusiness));
+          return { success: true };
+        } else {
+          return {
+            success: false,
+            message:
+              "Registro realizado, mas erro no login automático. Tente fazer login manualmente.",
+          };
+        }
       } else {
         return { success: false, message: response.message };
       }
@@ -194,7 +221,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     router.push("/");
   };
 
-  return (    <AuthContext.Provider
+  return (
+    <AuthContext.Provider
       value={{
         user,
         isAuthenticated: !!user,
