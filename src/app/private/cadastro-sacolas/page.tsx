@@ -438,7 +438,6 @@ const CadastroSacolasPage = () => {
                   required
                 />
               </div>
-              {/* Tags de Alergia */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Tags de Alergias (Selecione as que se aplicam)
@@ -634,7 +633,6 @@ const CadastroSacolasPage = () => {
                     <p className="text-sm text-gray-600 mb-3 line-clamp-3">
                       {bag.description}
                     </p>
-                    {/* Tags de Alergia */}
                     {bag.tags && bag.tags.length > 0 && (
                       <div className="mb-3">
                         <div className="flex flex-wrap gap-1">
