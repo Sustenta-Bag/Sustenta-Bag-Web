@@ -84,13 +84,33 @@ export const authService = {
         },
         body: JSON.stringify(data),
       });
-      if (response.ok) {
-        const result = await response.json();
+
+      if (response.ok || response.status === 201) {
+        const responseText = await response.text();
+        let result = null;
+
+        if (responseText) {
+          try {
+            result = JSON.parse(responseText);
+          } catch {
+            console.warn(
+              "Response de registro não é um JSON válido, fazendo login automático"
+            );
+          }
+        }
+
+        if (response.status === 201 && (!result || !result.token)) {
+          return await this.login({
+            email: data.userData.email,
+            password: data.userData.password,
+          });
+        }
+
         return {
           success: true,
-          user: result.user,
-          entity: result.entity,
-          token: result.token,
+          user: result?.user,
+          entity: result?.entity,
+          token: result?.token,
         };
       } else {
         const error = await response.json();
