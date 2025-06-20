@@ -201,9 +201,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
 
       <div className="w-full flex flex-col items-center gap-6">
         <div className="w-1/2 max-w-3xl flex flex-col gap-6">
-          <h1 className="text-4xl font-bold font-serif mb-6">Cadastro</h1>{" "}
+          <h1 className="text-4xl font-bold font-serif mb-6">Cadastro</h1>
           <form className="flex gap-4">
-            {" "}
             <div className="w-1/2 flex flex-col gap-2">
               <TextInput
                 label="Nome da Empresa"
@@ -216,7 +215,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
                 value={formData.appName}
                 onChange={(e) => handleChange("appName", e.target.value)}
                 required
-              />{" "}
+              />
               <TextInput
                 label="CNPJ"
                 value={formData.cnpj}
@@ -229,7 +228,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 required
-              />{" "}
+              />
               <TextInput
                 label="Celular"
                 value={formData.cellphone}
@@ -251,7 +250,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
                 onChange={(e) => handleChange("confirmarSenha", e.target.value)}
                 required
               />
-            </div>{" "}
+            </div>
             <div className="w-1/2 flex flex-col gap-2">
               <TextInput
                 label="Descrição"
@@ -296,7 +295,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onLoginClick }) => {
                 onChange={(e) => handleChange("complement", e.target.value)}
               />
             </div>
-          </form>{" "}
+          </form>
           <div className="flex gap-4 mt-6">
             <PrimaryButton onClick={onLoginClick} disabled={isLoading}>
               Voltar

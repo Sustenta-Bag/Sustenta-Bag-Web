@@ -9,6 +9,8 @@ import {
   Bag,
   CreateBagRequest,
   UpdateBagRequest,
+  ALLOWED_TAGS,
+  BagTag,
 } from "@/services/bagsService";
 import Swal from "sweetalert2";
 import Image from "next/image";
@@ -21,6 +23,7 @@ const CadastroSacolasPage = () => {
     price: "",
     description: "",
     status: 1,
+    tags: [] as BagTag[],
   });
   const [bags, setBags] = useState<Bag[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,9 +37,7 @@ const CadastroSacolasPage = () => {
   });
   const [sortBy, setSortBy] = useState<"price" | "createdAt">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [filteredAndSortedBags, setFilteredAndSortedBags] = useState<Bag[]>(
-    []
-  );
+  const [filteredAndSortedBags, setFilteredAndSortedBags] = useState<Bag[]>([]);
 
   const navLinks = [
     { text: "Página Inicial", href: "/private/homePage", icon: "bx-home" },
@@ -47,7 +48,8 @@ const CadastroSacolasPage = () => {
       icon: "bx-shopping-bag",
     },
     { text: "Configurações", href: "/private/configuracao", icon: "bx-cog" },
-  ];  useEffect(() => {
+  ];
+  useEffect(() => {
     const loadBagsData = async () => {
       if (!user?.idBusiness) return;
 
@@ -129,7 +131,6 @@ const CadastroSacolasPage = () => {
       setIsLoadingBags(false);
     }
   };
-
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -140,7 +141,15 @@ const CadastroSacolasPage = () => {
       ...prev,
       [name]: name === "price" ? value : value,
     }));
-  };  const handleSubmit = async (e: React.FormEvent) => {
+  };
+
+  const handleTagChange = (tag: BagTag, checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: checked ? [...prev.tags, tag] : prev.tags.filter((t) => t !== tag),
+    }));
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user?.idBusiness) {
@@ -179,6 +188,7 @@ const CadastroSacolasPage = () => {
         description: formData.description,
         idBusiness: user.idBusiness,
         status: formData.status,
+        tags: formData.tags,
       };
 
       const response = await bagsService.createBag(bagData);
@@ -214,6 +224,7 @@ const CadastroSacolasPage = () => {
       price: "",
       description: "",
       status: 1,
+      tags: [],
     });
   };
 
@@ -312,11 +323,18 @@ const CadastroSacolasPage = () => {
   const getStatusText = (status: number) => {
     return status === 1 ? "Ativa" : "Inativa";
   };
-
   const getStatusColor = (status: number) => {
     return status === 1
       ? "text-green-600 bg-green-100"
       : "text-red-600 bg-red-100";
+  };
+
+  const formatTagName = (tag: BagTag) => {
+    return tag
+      .replace(/PODE_CONTER_/g, "")
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   return (
@@ -324,7 +342,6 @@ const CadastroSacolasPage = () => {
       <Navbar title="Sustenta Bag" links={navLinks} logoSrc="/Star.png" />
 
       <div className="container mx-auto px-4 py-8">
-        {" "}
         <div className="mb-8 bg-white rounded-xl shadow-lg p-6">
           <h1 className="text-3xl font-bold mb-4 text-green-700">
             Gerenciamento de Sacolas Sustentáveis
@@ -333,18 +350,16 @@ const CadastroSacolasPage = () => {
             Cadastre e gerencie suas sacolas sustentáveis disponíveis para
             venda.
           </p>
-        </div>{" "}
+        </div>
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="mb-6">
-            {" "}
             <h2 className="text-2xl font-bold mb-4 text-green-700">
               Cadastrar Nova Sacola
             </h2>
             <p className="text-gray-600 mb-4">
               Cadastre novos tipos de sacolas sustentáveis para seu catálogo.
-            </p>{" "}
+            </p>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {" "}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <label
@@ -365,7 +380,7 @@ const CadastroSacolasPage = () => {
                     <option value="Salgada">Salgada</option>
                     <option value="Mista">Mista</option>
                   </select>
-                </div>{" "}
+                </div>
                 <div>
                   <label
                     htmlFor="price"
@@ -385,7 +400,7 @@ const CadastroSacolasPage = () => {
                     min="0"
                     required
                   />
-                </div>{" "}
+                </div>
                 <div>
                   <label
                     htmlFor="status"
@@ -404,7 +419,7 @@ const CadastroSacolasPage = () => {
                     <option value={0}>Inativa</option>
                   </select>
                 </div>
-              </div>{" "}
+              </div>
               <div>
                 <label
                   htmlFor="description"
@@ -422,7 +437,32 @@ const CadastroSacolasPage = () => {
                   placeholder="Descreva a sacola, seus ingredientes e características..."
                   required
                 />
-              </div>{" "}
+              </div>
+              {/* Tags de Alergia */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Tags de Alergias (Selecione as que se aplicam)
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {ALLOWED_TAGS.map((tag) => (
+                    <div key={tag} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={tag}
+                        checked={formData.tags.includes(tag)}
+                        onChange={(e) => handleTagChange(tag, e.target.checked)}
+                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor={tag}
+                        className="ml-2 text-sm text-gray-700 cursor-pointer"
+                      >
+                        {formatTagName(tag)}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div className="pt-4">
                 <button
                   type="submit"
@@ -441,7 +481,7 @@ const CadastroSacolasPage = () => {
               </div>
             </form>
           </div>
-        </div>{" "}
+        </div>
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-green-700">
@@ -466,7 +506,8 @@ const CadastroSacolasPage = () => {
                   Status
                 </label>
                 <select
-                  value={filters.status}                  onChange={(e) =>
+                  value={filters.status}
+                  onChange={(e) =>
                     setFilters((prev) => ({
                       ...prev,
                       status: e.target.value as "all" | "1" | "0",
@@ -485,10 +526,15 @@ const CadastroSacolasPage = () => {
                   Tipo
                 </label>
                 <select
-                  value={filters.type}                  onChange={(e) =>
+                  value={filters.type}
+                  onChange={(e) =>
                     setFilters((prev) => ({
                       ...prev,
-                      type: e.target.value as "all" | "Doce" | "Salgada" | "Mista",
+                      type: e.target.value as
+                        | "all"
+                        | "Doce"
+                        | "Salgada"
+                        | "Mista",
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -506,7 +552,9 @@ const CadastroSacolasPage = () => {
                 </label>
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as "price" | "createdAt")}
+                  onChange={(e) =>
+                    setSortBy(e.target.value as "price" | "createdAt")
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="createdAt">Data de Criação</option>
@@ -520,7 +568,9 @@ const CadastroSacolasPage = () => {
                 </label>
                 <select
                   value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+                  onChange={(e) =>
+                    setSortOrder(e.target.value as "asc" | "desc")
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="desc">Decrescente</option>
@@ -530,18 +580,20 @@ const CadastroSacolasPage = () => {
             </div>
 
             <div className="mt-4 text-sm text-gray-600">
-              Mostrando {filteredAndSortedBags.length} de {bags.length} sacola(s)
+              Mostrando {filteredAndSortedBags.length} de {bags.length}
+              sacola(s)
             </div>
           </div>
 
           {isLoadingBags ? (
             <div className="text-center py-10">
               <Loading size="large" text="Carregando sacolas..." />
-            </div>          ) : filteredAndSortedBags.length === 0 ? (
+            </div>
+          ) : filteredAndSortedBags.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-gray-500 text-lg">
-                {bags.length === 0 
-                  ? "Nenhuma sacola encontrada. Cadastre uma nova sacola!" 
+                {bags.length === 0
+                  ? "Nenhuma sacola encontrada. Cadastre uma nova sacola!"
                   : "Nenhuma sacola corresponde aos filtros selecionados."}
               </p>
             </div>
@@ -552,7 +604,6 @@ const CadastroSacolasPage = () => {
                   key={bag.id}
                   className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow"
                 >
-                  {" "}
                   <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
                     <Image
                       src="/bag.png"
@@ -561,7 +612,7 @@ const CadastroSacolasPage = () => {
                       height={200}
                       className="w-full h-full object-contain"
                     />
-                  </div>{" "}
+                  </div>
                   <div className="p-4 relative">
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -580,10 +631,30 @@ const CadastroSacolasPage = () => {
                         {getStatusText(bag.status)}
                       </span>
                     </div>
-
                     <p className="text-sm text-gray-600 mb-3 line-clamp-3">
                       {bag.description}
-                    </p>                    <div className="flex justify-between items-end">
+                    </p>
+                    {/* Tags de Alergia */}
+                    {bag.tags && bag.tags.length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex flex-wrap gap-1">
+                          {bag.tags.slice(0, 3).map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full"
+                            >
+                              {formatTagName(tag)}
+                            </span>
+                          ))}
+                          {bag.tags.length > 3 && (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                              +{bag.tags.length - 3} mais
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-end">
                       <div className="text-xs text-gray-400">
                         Cadastrada em: {formatDate(bag.createdAt)}
                       </div>

@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Bag, UpdateBagRequest } from "@/services/bagsService";
+import {
+  Bag,
+  UpdateBagRequest,
+  ALLOWED_TAGS,
+  BagTag,
+} from "@/services/bagsService";
 import Loading from "@/components/loading/Loading";
 
 interface EditBagModalProps {
@@ -24,8 +29,8 @@ const EditBagModal: React.FC<EditBagModalProps> = ({
     price: "",
     description: "",
     status: 1,
+    tags: [] as BagTag[],
   });
-
   useEffect(() => {
     if (bag) {
       setFormData({
@@ -33,10 +38,10 @@ const EditBagModal: React.FC<EditBagModalProps> = ({
         price: bag.price.toString(),
         description: bag.description,
         status: bag.status,
+        tags: bag.tags || [],
       });
     }
   }, [bag]);
-
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -49,6 +54,13 @@ const EditBagModal: React.FC<EditBagModalProps> = ({
     }));
   };
 
+  const handleTagChange = (tag: BagTag, checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: checked ? [...prev.tags, tag] : prev.tags.filter((t) => t !== tag),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bag) return;
@@ -57,13 +69,13 @@ const EditBagModal: React.FC<EditBagModalProps> = ({
     if (isNaN(price) || price <= 0) {
       return;
     }
-
     const bagData: UpdateBagRequest = {
       type: formData.type,
       price: price,
       description: formData.description,
       idBusiness: bag.idBusiness,
       status: formData.status,
+      tags: formData.tags,
     };
 
     await onSave(bag.id, bagData);
@@ -108,7 +120,6 @@ const EditBagModal: React.FC<EditBagModalProps> = ({
                 <option value="Mista">Mista</option>
               </select>
             </div>
-
             <div>
               <label
                 htmlFor="edit-price"
@@ -130,7 +141,6 @@ const EditBagModal: React.FC<EditBagModalProps> = ({
                 disabled={isLoading}
               />
             </div>
-
             <div>
               <label
                 htmlFor="edit-status"
@@ -150,7 +160,6 @@ const EditBagModal: React.FC<EditBagModalProps> = ({
                 <option value={0}>Inativa</option>
               </select>
             </div>
-
             <div>
               <label
                 htmlFor="edit-description"
@@ -170,7 +179,31 @@ const EditBagModal: React.FC<EditBagModalProps> = ({
                 disabled={isLoading}
               />
             </div>
-
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Tags de Alergias (Selecione as que se aplicam)
+              </label>
+              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                {ALLOWED_TAGS.map((tag) => (
+                  <div key={tag} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={`edit-${tag}`}
+                      checked={formData.tags.includes(tag)}
+                      onChange={(e) => handleTagChange(tag, e.target.checked)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                      disabled={isLoading}
+                    />
+                    <label
+                      htmlFor={`edit-${tag}`}
+                      className="ml-2 text-xs text-gray-700 cursor-pointer"
+                    >
+                      {tag.replace(/PODE_CONTER_/g, "").replace(/_/g, " ")}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"
