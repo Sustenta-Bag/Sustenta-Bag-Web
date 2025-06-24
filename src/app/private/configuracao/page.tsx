@@ -5,6 +5,15 @@ import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/navbar/Navbar";
 import AlertComponent from "@/components/alertComponent/Alert";
 
+// Definindo os tipos de links da navbar de acordo com o componente
+interface NavLink {
+  text: string;
+  href: string;
+  icon?: string;
+  iconComponent?: React.ReactNode;
+  position?: "left" | "right";
+}
+
 const ConfiguracaoPage = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("perfil");
@@ -15,7 +24,7 @@ const ConfiguracaoPage = () => {
   });
 
   // Links da Navbar com ícones
-  const navLinks = [
+  const navLinks: NavLink[] = [
     { text: "Página Inicial", href: "/private/homePage", icon: "bx-home" },
     { text: "Pedidos", href: "/private/pedidos", icon: "bx-package" },
     {
@@ -30,17 +39,16 @@ const ConfiguracaoPage = () => {
       position: "right",
     },
   ];
-
   // Perfil inicial com dados do usuário
   const [perfilForm, setPerfilForm] = useState({
-    nomeFantasia: user?.nomeFantasia || "",
+    nomeFantasia: user?.legalName || "",
     email: user?.email || "",
     cnpj: user?.cnpj || "",
-    cidade: user?.cidade || "",
-    bairro: user?.bairro || "",
-    rua: user?.rua || "",
-    numero: user?.numero || "",
-    cep: user?.cep || "",
+    cidade: user?.address?.city || "",
+    bairro: user?.address?.complement || "",
+    rua: user?.address?.street || "",
+    numero: user?.address?.number || "",
+    cep: user?.address?.zipCode || "",
   });
 
   // Formulário de segurança/senha

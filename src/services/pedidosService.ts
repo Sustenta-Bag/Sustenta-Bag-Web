@@ -7,7 +7,7 @@ export interface Pedido {
   produto: string;
   data: string;
   valor: number;
-  status: "pendente" | "aceito" | "concluido" | "recusado";
+  status: PedidoStatus;
   telefone?: string;
   endereco?: string;
   observacoes?: string;
@@ -15,8 +15,18 @@ export interface Pedido {
   historico?: { status: string; data: string; hora: string }[];
 }
 
+// Interface para a resposta da API
+export interface PedidosServiceResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+}
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4041/api";
+
 // Mock de dados para desenvolvimento frontend
-export const MOCK_PEDIDOS: Pedido[] = [
+const MOCK_PEDIDOS: Pedido[] = [
   {
     id: "PED-001",
     cliente: "Maria Silva",
@@ -242,32 +252,250 @@ export const MOCK_PEDIDOS: Pedido[] = [
   },
 ];
 
+// Interfaces para os dados da API
+interface OrderAddressAPI {
+  street: string;
+  number: string;
+  city: string;
+  state: string;
+  zipCode?: string;
+  complement?: string;
+}
+
+interface OrderHistoryItemAPI {
+  status: number;
+  date: string;
+}
+
+interface OrderAPI {
+  id: number | string;
+  clientName: string;
+  bagType: string;
+  createdAt: string;
+  totalPrice: number;
+  status: number;
+  clientPhone?: string;
+  address?: OrderAddressAPI;
+  quantity?: number;
+  observations?: string;
+  statusHistory?: OrderHistoryItemAPI[];
+}
+
 // Serviço para gerenciar os pedidos
-export const pedidosService = {
-  // Expor o array de pedidos diretamente
-  pedidosMock: MOCK_PEDIDOS,
+class PedidosService {
+  private _pedidosMock: Pedido[] = MOCK_PEDIDOS; // Mantém mock apenas para desenvolvimento/testes específicos
+  private _pedidosCache: Pedido[] = [];
 
-  // Obter todos os pedidos
-  obterTodos: (): Pedido[] => {
-    // No futuro, aqui seria uma chamada à API
-    return [...MOCK_PEDIDOS];
-  },
+  private _estatisticas = {
+    total: 0,
+    pendentes: 0,
+    aceitos: 0,
+    concluidos: 0,
+    recusados: 0,
+    valorTotal: 0,
+  };
 
-  // Obter pedido por ID
-  obterPorId: (id: string): Pedido | undefined => {
-    return MOCK_PEDIDOS.find((pedido) => pedido.id === id);
-  },
+  constructor() {
+    // Inicializa com cache vazio e estatísticas zeradas
+    this._pedidosCache = [];
+    this.calcularEstatisticas();
+  }
+  private getAuthToken(): string | null {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.warn("Token de autenticação não encontrado no localStorage");
+      }
+      return token;
+    }
+    return null;
+  }
 
-  // Obter pedidos por status
-  obterPorStatus: (status: PedidoStatus): Pedido[] => {
-    return MOCK_PEDIDOS.filter((pedido) => pedido.status === status);
-  },
+  private getAuthHeaders(): HeadersInit {
+    const token = this.getAuthToken();
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  private getBusinessId(): number | null {
+    if (typeof window !== "undefined") {
+      const user = localStorage.getItem("user");
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          return userData.id || null;
+        } catch (error) {
+          console.error("Erro ao obter ID do negócio:", error);
+          return null;
+        }
+      }
+    }
+    return null;
+  } // Busca os pedidos da API
+  async getOrdersByBusiness(): Promise<PedidosServiceResponse<Pedido[]>> {
+    try {
+      const businessId = this.getBusinessId();
+
+      if (!businessId) {
+        console.warn("ID do negócio não encontrado");
+        this._pedidosCache = []; // Define cache como array vazio
+        this.calcularEstatisticas();
+        return {
+          success: false,
+          data: [],
+          message: "ID do negócio não encontrado",
+        };
+      }
+
+      const headers = this.getAuthHeaders();
+      // Log para debug
+      console.log(`Buscando pedidos para o negócio ID: ${businessId}`);
+      console.log(`URL: ${API_BASE_URL}/orders/business/${businessId}`);
+      console.log(
+        `Com token de autenticação: ${this.getAuthToken() ? "Sim" : "Não"}`
+      );
+
+      const response = await fetch(
+        `${API_BASE_URL}/orders/business/${businessId}`,
+        {
+          method: "GET",
+          headers: headers,
+        }
+      );
+
+      if (!response.ok) {
+        const errorMessage = `Erro na resposta da API: ${response.status} ${response.statusText}`;
+        console.warn(errorMessage);
+        this._pedidosCache = []; // Define cache como array vazio
+        this.calcularEstatisticas();
+
+        return {
+          success: false,
+          data: [],
+          message: "Erro ao buscar pedidos do servidor",
+        };
+      }
+
+      const data = await response.json();
+
+      // Se a API retornar um array vazio, mantém vazio
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        this._pedidosCache = [];
+        this.calcularEstatisticas();
+        return {
+          success: true,
+          data: [],
+          message: "Nenhum pedido encontrado",
+        };
+      }
+
+      // Mapear os dados da API para o formato esperado pelo frontend
+      this._pedidosCache = this.mapearPedidosApi(data);
+      this.calcularEstatisticas();
+
+      return {
+        success: true,
+        data: this._pedidosCache,
+      };
+    } catch (error) {
+      console.error("Erro ao buscar pedidos:", error);
+
+      // Em caso de erro, retornar array vazio
+      this._pedidosCache = [];
+      this.calcularEstatisticas();
+
+      return {
+        success: false,
+        data: [],
+        message: "Erro de conexão com o servidor",
+      };
+    }
+  } // Função para mapear os dados da API para o formato esperado pelo frontend
+  private mapearPedidosApi(apiData: OrderAPI[]): Pedido[] {
+    return apiData.map((order) => ({
+      id: order.id.toString(),
+      cliente: order.clientName || "Cliente",
+      produto: order.bagType || "Sacola",
+      data: this.formatarData(new Date(order.createdAt)),
+      valor: order.totalPrice || 0,
+      status: this.mapearStatus(order.status),
+      telefone: order.clientPhone || "",
+      endereco: this.formatarEndereco(order.address),
+      quantidadeSacolas: order.quantity || 1,
+      observacoes: order.observations || "",
+      historico: order.statusHistory
+        ? this.mapearHistorico(order.statusHistory)
+        : undefined,
+    }));
+  }
+
+  private mapearHistorico(
+    historico: OrderHistoryItemAPI[]
+  ): { status: string; data: string; hora: string }[] {
+    if (!historico || !Array.isArray(historico)) return [];
+
+    return historico.map((item) => {
+      const data = new Date(item.date);
+      return {
+        status: this.mapearStatus(item.status),
+        data: this.formatarData(data),
+        hora: `${String(data.getHours()).padStart(2, "0")}:${String(
+          data.getMinutes()
+        ).padStart(2, "0")}`,
+      };
+    });
+  }
+
+  private formatarData(data: Date): string {
+    return `${data.getDate().toString().padStart(2, "0")}/${(
+      data.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}/${data.getFullYear()}`;
+  }
+
+  private formatarEndereco(address: OrderAddressAPI | undefined): string {
+    if (!address) return "";
+    return `${address.street || ""}, ${address.number || ""} - ${
+      address.city || ""
+    }/${address.state || ""}`;
+  }
+
+  private mapearStatus(apiStatus: number): PedidoStatus {
+    // Mapeia os status da API para os status do frontend
+    const statusMap: Record<number, PedidoStatus> = {
+      0: "pendente",
+      1: "aceito",
+      2: "concluido",
+      3: "recusado",
+    };
+
+    return statusMap[apiStatus] || "pendente";
+  } // Métodos de acesso aos dados
+  obterTodos(): Pedido[] {
+    return this._pedidosCache;
+  }
+
+  obterPorId(id: string): Pedido | undefined {
+    return this._pedidosCache.find((pedido) => pedido.id === id);
+  }
+
+  obterPorStatus(status: PedidoStatus): Pedido[] {
+    return this._pedidosCache.filter((pedido) => pedido.status === status);
+  }
   // Adicionar ao histórico de um pedido
-  adicionarAoHistorico: (
+  adicionarAoHistorico(
     id: string,
     status: PedidoStatus
-  ): { status: string; data: string; hora: string }[] | null => {
-    const pedidoIndex = MOCK_PEDIDOS.findIndex((p) => p.id === id);
+  ): { status: string; data: string; hora: string }[] | null {
+    const pedidoIndex = this._pedidosCache.findIndex((p) => p.id === id);
     if (pedidoIndex === -1) return null;
 
     const dataAtual = new Date();
@@ -283,98 +511,179 @@ export const pedidosService = {
       "0"
     )}:${String(dataAtual.getMinutes()).padStart(2, "0")}`;
 
-    if (!MOCK_PEDIDOS[pedidoIndex].historico) {
-      MOCK_PEDIDOS[pedidoIndex].historico = [];
+    if (!this._pedidosCache[pedidoIndex].historico) {
+      this._pedidosCache[pedidoIndex].historico = [];
     }
 
-    MOCK_PEDIDOS[pedidoIndex].historico!.push({
+    this._pedidosCache[pedidoIndex].historico!.push({
       status,
       data: dataFormatada,
       hora: horaFormatada,
     });
 
-    return MOCK_PEDIDOS[pedidoIndex].historico!;
-  },
-
-  atualizarStatus: (id: string, novoStatus: PedidoStatus): Pedido | null => {
-    const pedidoIndex = MOCK_PEDIDOS.findIndex((p) => p.id === id);
+    return this._pedidosCache[pedidoIndex].historico!;
+  } // Atualizar status de um pedido
+  async atualizarStatus(
+    id: string,
+    novoStatus: PedidoStatus
+  ): Promise<Pedido | null> {
+    const pedidoIndex = this._pedidosCache.findIndex((p) => p.id === id);
 
     if (pedidoIndex === -1) return null;
 
-    // Em um ambiente real, aqui seria uma chamada PUT para a API
-    MOCK_PEDIDOS[pedidoIndex].status = novoStatus;
+    try {
+      // Em um ambiente real, aqui seria uma chamada PUT para a API
+      // TODO: Implementar chamada PUT para a API quando o endpoint estiver disponível
+      // Exemplo:
+      // const response = await fetch(`${API_BASE_URL}/orders/${id}/status`, {
+      //   method: 'PUT',
+      //   headers: this.getAuthHeaders(),
+      //   body: JSON.stringify({
+      //     status: this.mapearStatusParaAPI(novoStatus)
+      //   })
+      // });
+      //
+      // if (!response.ok) {
+      //   console.error(`Erro ao atualizar status do pedido: ${response.status}`);
+      //   return null;
+      // }
 
-    // Adicionar ao histórico diretamente aqui
-    // Obter data e hora atuais formatadas
-    const dataAtual = new Date();
-    const dataFormatada = `${String(dataAtual.getDate()).padStart(
-      2,
-      "0"
-    )}/${String(dataAtual.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}/${dataAtual.getFullYear()}`;
-    const horaFormatada = `${String(dataAtual.getHours()).padStart(
-      2,
-      "0"
-    )}:${String(dataAtual.getMinutes()).padStart(2, "0")}`;
+      // Log para debug
+      console.log(`Atualizando status do pedido ${id} para ${novoStatus}`);
+      console.log(
+        `Com token de autenticação: ${this.getAuthToken() ? "Sim" : "Não"}`
+      );
 
-    // Se não existir histórico, criar um array vazio
-    if (!MOCK_PEDIDOS[pedidoIndex].historico) {
-      MOCK_PEDIDOS[pedidoIndex].historico = [];
+      // Atualiza apenas no cache local por enquanto
+      this._pedidosCache[pedidoIndex].status = novoStatus;
+
+      // Adicionar ao histórico
+      this.adicionarAoHistorico(id, novoStatus);
+
+      // Recalcular estatísticas
+      this.calcularEstatisticas();
+
+      return this._pedidosCache[pedidoIndex];
+    } catch (error) {
+      console.error("Erro ao atualizar status do pedido:", error);
+      return null;
     }
+  }
 
-    // Adicionar novo registro ao histórico
-    MOCK_PEDIDOS[pedidoIndex].historico!.push({
-      status: novoStatus,
-      data: dataFormatada,
-      hora: horaFormatada,
-    });
-
-    return MOCK_PEDIDOS[pedidoIndex];
-  },
-
-  // Criar novo pedido
-  criar: (pedido: Omit<Pedido, "id">): Pedido => {
-    // Gerar um ID (em um ambiente real, o backend cuidaria disso)
-    const novoId = `PED-${String(MOCK_PEDIDOS.length + 1).padStart(3, "0")}`;
-
-    const novoPedido: Pedido = {
-      id: novoId,
-      ...pedido,
+  // Mapear status do frontend para o backend (para uso futuro)
+  private mapearStatusParaAPI(status: PedidoStatus): number {
+    const statusMap: Record<PedidoStatus, number> = {
+      pendente: 0,
+      aceito: 1,
+      concluido: 2,
+      recusado: 3,
     };
 
-    // Em um ambiente real, aqui seria uma chamada POST para a API
-    MOCK_PEDIDOS.push(novoPedido);
+    return statusMap[status];
+  } // Criar novo pedido
+  async criar(
+    pedido: Omit<Pedido, "id">
+  ): Promise<PedidosServiceResponse<Pedido>> {
+    try {
+      const businessId = this.getBusinessId();
 
-    return novoPedido;
-  },
+      if (!businessId) {
+        return {
+          success: false,
+          message: "ID do negócio não encontrado",
+        };
+      }
+
+      // TODO: Implementar chamada POST para a API quando o endpoint estiver disponível
+      // Exemplo:
+      // const response = await fetch(`${API_BASE_URL}/orders`, {
+      //   method: 'POST',
+      //   headers: this.getAuthHeaders(),
+      //   body: JSON.stringify({
+      //     businessId,
+      //     clientName: pedido.cliente,
+      //     bagType: pedido.produto,
+      //     totalPrice: pedido.valor,
+      //     quantity: pedido.quantidadeSacolas,
+      //     clientPhone: pedido.telefone,
+      //     observations: pedido.observacoes,
+      //     address: pedido.endereco
+      //   })
+      // });
+
+      // if (!response.ok) {
+      //   return {
+      //     success: false,
+      //     message: "Erro ao criar pedido"
+      //   };
+      // }
+
+      // const data = await response.json();
+      // const novoPedido = this.mapearPedidosApi([data])[0];
+
+      // Por enquanto, simula a criação local
+      const novoId = `PED-${String(this._pedidosCache.length + 1).padStart(
+        3,
+        "0"
+      )}`;
+
+      const novoPedido: Pedido = {
+        id: novoId,
+        ...pedido,
+      };
+
+      // Adiciona ao cache local
+      this._pedidosCache.push(novoPedido);
+
+      // Recalcular estatísticas
+      this.calcularEstatisticas();
+
+      return {
+        success: true,
+        data: novoPedido,
+        message: "Pedido criado com sucesso",
+      };
+    } catch (error) {
+      console.error("Erro ao criar pedido:", error);
+      return {
+        success: false,
+        message: "Erro ao criar pedido",
+      };
+    }
+  }
+  // Calcular estatísticas de pedidos
+  private calcularEstatisticas(): void {
+    this._estatisticas = {
+      total: this._pedidosCache.length,
+      pendentes: this._pedidosCache.filter((p) => p.status === "pendente")
+        .length,
+      aceitos: this._pedidosCache.filter((p) => p.status === "aceito").length,
+      concluidos: this._pedidosCache.filter((p) => p.status === "concluido")
+        .length,
+      recusados: this._pedidosCache.filter((p) => p.status === "recusado")
+        .length,
+      valorTotal: this._pedidosCache
+        .filter((p) => p.status !== "recusado")
+        .reduce((sum, pedido) => sum + pedido.valor, 0),
+    };
+  }
 
   // Obter estatísticas de pedidos
-  obterEstatisticas: () => {
-    const total = MOCK_PEDIDOS.length;
-    const pendentes = MOCK_PEDIDOS.filter(
-      (p) => p.status === "pendente"
-    ).length;
-    const aceitos = MOCK_PEDIDOS.filter((p) => p.status === "aceito").length;
-    const concluidos = MOCK_PEDIDOS.filter(
-      (p) => p.status === "concluido"
-    ).length;
-    const recusados = MOCK_PEDIDOS.filter(
-      (p) => p.status === "recusado"
-    ).length;
+  obterEstatisticas() {
+    return this._estatisticas;
+  }
 
-    const valorTotal = MOCK_PEDIDOS.filter(
-      (p) => p.status !== "recusado"
-    ).reduce((sum, pedido) => sum + pedido.valor, 0);
-
+  // Método para usar dados mock (apenas para desenvolvimento/testes)
+  usarDadosMock(): PedidosServiceResponse<Pedido[]> {
+    this._pedidosCache = [...this._pedidosMock];
+    this.calcularEstatisticas();
     return {
-      total,
-      pendentes,
-      aceitos,
-      concluidos,
-      recusados,
-      valorTotal,
+      success: true,
+      data: this._pedidosCache,
+      message: "Usando dados mock para desenvolvimento",
     };
-  },
-};
+  }
+}
+
+// Instanciar o serviço como singleton
+export const pedidosService = new PedidosService();
