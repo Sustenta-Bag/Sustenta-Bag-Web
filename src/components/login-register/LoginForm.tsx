@@ -34,7 +34,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick }) => {
 
     try {
       const result = await login(email, password);
-      
+
       if (result.success) {
         setAlert({
           visible: true,
@@ -44,10 +44,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick }) => {
       } else {
         setAlert({
           visible: true,
-          texto: result.message || "Email ou senha incorretos. Tente novamente.",
+          texto:
+            result.message || "Email ou senha incorretos. Tente novamente.",
           tipo: "error",
         });
-      }    } catch {
+      }
+    } catch {
       setAlert({
         visible: true,
         texto: "Erro de conexão. Verifique sua internet e tente novamente.",
@@ -67,7 +69,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick }) => {
       <div className="w-full flex flex-col items-center gap-6">
         <div className="w-1/2 max-w-md flex flex-col gap-3">
           <h1 className="text-4xl font-bold font-serif">Login</h1>
-          <p className="text-lg">Realize seu login</p>          <TextInput
+          <p className="text-lg">Realize seu login</p>{" "}
+          <TextInput
             label="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -79,7 +82,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick }) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-          />          <div className="flex gap-4 mt-4">
+          />
+          <div className="flex gap-4 mt-4">
             <PrimaryButton onClick={handleLogin} disabled={isLoading}>
               {isLoading ? (
                 <div className="flex items-center gap-2">
@@ -94,7 +98,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegisterClick }) => {
               Cadastre-se
             </PrimaryButton>
           </div>
-
           <p className="text-sm text-center mt-2">
             Não possui uma conta?{" "}
             <button

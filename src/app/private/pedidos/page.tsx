@@ -40,6 +40,7 @@ const PedidosPage = () => {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [pedidosFiltrados, setPedidosFiltrados] = useState<Pedido[]>([]);
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [carregando, setCarregando] = useState(true);
   const itensPorPagina = 8;
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -76,13 +77,43 @@ const PedidosPage = () => {
       icon: "bx-cog",
       position: "right",
     },
-  ];
+  ];  useEffect(() => {
+    const carregarPedidos = async () => {
+      setCarregando(true);
+      try {
+        const resultado = await pedidosService.getOrdersByBusiness();
+        if (resultado.success && resultado.data) {
+          setPedidos(resultado.data);
+          setEstatisticas(pedidosService.obterEstatisticas());
+        } else {
+          console.warn("Erro ao carregar pedidos:", resultado.message);
+          // Não usa fallback para dados mock, mantém pedidos vazios
+          setPedidos([]);
+          setEstatisticas(pedidosService.obterEstatisticas());
+          // Exibe alerta informando que não há pedidos
+          setAlert({
+            visible: true,
+            texto: resultado.message || "Nenhum pedido encontrado",
+            tipo: "info",
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao carregar pedidos:", error);
+        // Não usa fallback para dados mock, mantém pedidos vazios
+        setPedidos([]);
+        setEstatisticas(pedidosService.obterEstatisticas());
+        // Exibe alerta sobre o erro
+        setAlert({
+          visible: true,
+          texto: "Erro ao carregar pedidos",
+          tipo: "error",
+        });
+      } finally {
+        setCarregando(false);
+      }
+    };
 
-  useEffect(() => {
-    const todosPedidos = pedidosService.pedidosMock;
-    setPedidos(todosPedidos);
-    // aplicarFiltros será chamado pelo useEffect abaixo ao setar 'pedidos'
-    setEstatisticas(pedidosService.obterEstatisticas());
+    carregarPedidos();
   }, []);
 
   useEffect(() => {
@@ -188,9 +219,8 @@ const PedidosPage = () => {
 
     setEstatisticas(pedidosService.obterEstatisticas());
   };
-
-  const handleAceitarPedido = (id: string) => {
-    const pedidoAtualizado = pedidosService.atualizarStatus(id, "aceito");
+  const handleAceitarPedido = async (id: string) => {
+    const pedidoAtualizado = await pedidosService.atualizarStatus(id, "aceito");
     if (pedidoAtualizado) {
       atualizarPedidoLocalmente(id, "aceito");
       setAlert({
@@ -198,11 +228,17 @@ const PedidosPage = () => {
         texto: `Pedido ${id} aceito com sucesso!`,
         tipo: "success",
       });
+    } else {
+      setAlert({
+        visible: true,
+        texto: `Erro ao aceitar o pedido ${id}.`,
+        tipo: "error",
+      });
     }
   };
 
-  const handleConcluirPedido = (id: string) => {
-    const pedidoAtualizado = pedidosService.atualizarStatus(id, "concluido");
+  const handleConcluirPedido = async (id: string) => {
+    const pedidoAtualizado = await pedidosService.atualizarStatus(id, "concluido");
     if (pedidoAtualizado) {
       atualizarPedidoLocalmente(id, "concluido");
       setAlert({
@@ -210,11 +246,17 @@ const PedidosPage = () => {
         texto: `Pedido ${id} concluído com sucesso!`,
         tipo: "success",
       });
+    } else {
+      setAlert({
+        visible: true,
+        texto: `Erro ao concluir o pedido ${id}.`,
+        tipo: "error",
+      });
     }
   };
 
-  const handleRecusarPedido = (id: string) => {
-    const pedidoAtualizado = pedidosService.atualizarStatus(id, "recusado");
+  const handleRecusarPedido = async (id: string) => {
+    const pedidoAtualizado = await pedidosService.atualizarStatus(id, "recusado");
     if (pedidoAtualizado) {
       atualizarPedidoLocalmente(id, "recusado");
       setAlert({
@@ -226,6 +268,12 @@ const PedidosPage = () => {
         // Fecha o modal se o pedido recusado era o que estava aberto
         setModalOpen(false);
       }
+    } else {
+      setAlert({
+        visible: true,
+        texto: `Erro ao recusar o pedido ${id}.`,
+        tipo: "error",
+      });
     }
   };
 
@@ -289,7 +337,6 @@ const PedidosPage = () => {
               />
             </div>
           )}
-
           <div className="mb-8">
             <h1 className="text-2xl md:text-3xl font-bold mb-6 text-[#1E1E1E] flex items-center">
               <i className="bx bx-package text-[#037335] text-3xl mr-2"></i>
@@ -339,18 +386,39 @@ const PedidosPage = () => {
               filtroData={filtroData}
               onFiltroDataChange={handleFiltroDataChange}
             />
-          </div>
-
-          <StatusTabs activeTab={activeTab} onTabChange={handleTabChange} />
-
-          <OrderGrid
-            pedidos={pedidosPaginados}
-            onVisualizarPedido={handleVisualizarPedido}
-            onAceitarPedido={handleAceitarPedido}
-            onRecusarPedido={handleRecusarPedido}
-            onConcluirPedido={handleConcluirPedido}
-          />
-
+          </div>{" "}          <StatusTabs activeTab={activeTab} onTabChange={handleTabChange} />
+          
+          {carregando ? (
+            <div className="bg-white shadow-md rounded-lg p-8 mt-4 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#037335]"></div>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                Carregando pedidos...
+              </h3>
+              <p className="text-gray-500">
+                Aguarde enquanto buscamos seus pedidos.
+              </p>
+            </div>
+          ) : pedidosPaginados.length > 0 ? (
+            <OrderGrid
+              pedidos={pedidosPaginados}
+              onVisualizarPedido={handleVisualizarPedido}
+              onAceitarPedido={handleAceitarPedido}
+              onRecusarPedido={handleRecusarPedido}
+              onConcluirPedido={handleConcluirPedido}
+            />
+          ) : (
+            <div className="bg-white shadow-md rounded-lg p-8 mt-4 text-center">
+              <i className="bx bx-package text-gray-400 text-6xl mb-4"></i>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                Nenhum pedido encontrado
+              </h3>
+              <p className="text-gray-500">
+                Não há pedidos disponíveis para exibição no momento.
+              </p>
+            </div>
+          )}
           {pedidosFiltrados.length > itensPorPagina && (
             <PaginationControls
               currentPage={paginaAtual}

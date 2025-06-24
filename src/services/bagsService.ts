@@ -1,5 +1,27 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
+<<<<<<< HEAD
+=======
+
+export const ALLOWED_TAGS = [
+  "PODE_CONTER_GLUTEN",
+  "PODE_CONTER_LACTOSE",
+  "PODE_CONTER_LEITE",
+  "PODE_CONTER_OVOS",
+  "PODE_CONTER_AMENDOIM",
+  "PODE_CONTER_CASTANHAS",
+  "PODE_CONTER_NOZES",
+  "PODE_CONTER_SOJA",
+  "PODE_CONTER_PEIXE",
+  "PODE_CONTER_FRUTOS_DO_MAR",
+  "PODE_CONTER_CRUSTACEOS",
+  "PODE_CONTER_GERGELIM",
+  "PODE_CONTER_SULFITOS",
+  "PODE_CONTER_CARNE",
+] as const;
+
+export type BagTag = (typeof ALLOWED_TAGS)[number];
+>>>>>>> d7f61091bd582943771fc1c6bc31fdf5d3331325
 
 export interface Bag {
   id: number;
@@ -8,6 +30,7 @@ export interface Bag {
   description: string;
   idBusiness: number;
   status: number;
+  tags: BagTag[];
   createdAt: string;
 }
 
@@ -17,6 +40,7 @@ export interface CreateBagRequest {
   description: string;
   idBusiness: number;
   status: number;
+  tags: BagTag[];
 }
 
 export interface UpdateBagRequest {
@@ -25,6 +49,7 @@ export interface UpdateBagRequest {
   description: string;
   idBusiness: number;
   status: number;
+  tags: BagTag[];
 }
 
 export interface BagsServiceResponse<T> {
@@ -58,7 +83,6 @@ class BagsService {
         headers: this.getAuthHeaders(),
         body: JSON.stringify(bagData),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         return {
@@ -66,8 +90,25 @@ class BagsService {
           message: errorData.message || "Erro ao criar sacola",
         };
       }
-
+<<<<<<< HEAD
+ 
       const data = await response.json();
+=======
+
+      const responseText = await response.text();
+      let data = null;
+
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          data = { id: Date.now(), message: "Sacola criada com sucesso" };
+        }
+      } else {
+        data = { id: Date.now(), message: "Sacola criada com sucesso" };
+      }
+
+>>>>>>> d7f61091bd582943771fc1c6bc31fdf5d3331325
       return {
         success: true,
         data,
@@ -86,7 +127,7 @@ class BagsService {
   ): Promise<BagsServiceResponse<Bag[]>> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/bags/business/${idBusiness}`,
+        `${API_BASE_URL}/bags?idBusiness=${idBusiness}`,
         {
           method: "GET",
           headers: this.getAuthHeaders(),
@@ -100,11 +141,12 @@ class BagsService {
           message: errorData.message || "Erro ao buscar sacolas",
         };
       }
-
       const data = await response.json();
+      const bags = data.data as Bag[];
+
       return {
         success: true,
-        data,
+        data: bags,
       };
     } catch (error) {
       console.error("Erro ao buscar sacolas:", error);
