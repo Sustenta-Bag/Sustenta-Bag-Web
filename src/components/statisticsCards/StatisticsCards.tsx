@@ -10,7 +10,7 @@ import { CiViewList } from "react-icons/ci";
 interface StatisticsProps {
   total: number;
   pendentes: number;
-  aceitos: number;
+  confirmados: number;
   concluidos: number;
   valorTotal: number;
 }
@@ -40,7 +40,7 @@ const StatisticsCards: React.FC<StatisticsCardsProps> = ({ estatisticas }) => {
       />
       <Card
         titulo="Em Processo"
-        valor={estatisticas.aceitos}
+        valor={estatisticas.confirmados}
         descricao="Em preparação"
         corBorda="border-blue-500"
         corIconeBg="bg-blue-100"
