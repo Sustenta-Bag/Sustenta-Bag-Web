@@ -8,7 +8,6 @@ import ModalComponent from "@/components/Modal/ModalComponent";
 import AlertComponent from "@/components/alertComponent/Alert";
 import { Pedido, pedidosService } from "@/services/pedidosService";
 import dynamic from "next/dynamic";
-// Importando apenas os ícones que estamos usando
 import {
   FaBox,
   FaShoppingBag,
@@ -31,142 +30,13 @@ import {
   FaLightbulb,
 } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
+import { formatarMoeda } from "@/utils/formatters";
 
-// Importações dinâmicas para os componentes de gráficos
+// Importando apenas os ícones que estamos usando
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 // Definição de tipos para o ApexCharts
-interface ApexChartOptions {
-  chart: {
-    id?: string;
-    type?:
-      | "area"
-      | "line"
-      | "donut"
-      | "bar"
-      | "pie"
-      | "radialBar"
-      | "scatter"
-      | "bubble"
-      | "heatmap"
-      | "candlestick"
-      | "boxPlot"
-      | "radar"
-      | "polarArea"
-      | "rangeBar"
-      | "rangeArea"
-      | "treemap";
-    toolbar?: {
-      show: boolean;
-    };
-    zoom?: {
-      enabled: boolean;
-    };
-  };
-  colors?: string[];
-  dataLabels?: {
-    enabled: boolean;
-  };
-  stroke?: {
-    curve: "smooth" | "straight" | "stepline";
-    width: number;
-  };
-  fill?: {
-    type: string;
-    gradient?: {
-      shadeIntensity: number;
-      opacityFrom: number;
-      opacityTo: number;
-      stops: number[];
-    };
-  };
-  xaxis: {
-    categories: string[];
-    labels?: {
-      style?: {
-        colors?: string;
-        fontFamily?: string;
-      };
-    };
-  };
-  yaxis?: {
-    labels?: {
-      style?: {
-        colors?: string;
-        fontFamily?: string;
-      };
-      formatter?: (value: number) => string;
-    };
-  };
-  tooltip?: {
-    theme?: "light" | "dark";
-    y?: {
-      formatter?: (value: number) => string;
-    };
-  };
-  grid?: {
-    borderColor?: string;
-    strokeDashArray?: number;
-  };
-  legend?: {
-    show?: boolean;
-    position?: "top" | "right" | "bottom" | "left";
-    fontFamily?: string;
-  };
-  plotOptions?: {
-    bar?: {
-      horizontal?: boolean;
-      columnWidth?: string;
-      borderRadius?: number;
-      distributed?: boolean;
-    };
-    pie?: {
-      donut?: {
-        size?: string;
-        labels?: {
-          show?: boolean;
-          name?: {
-            show?: boolean;
-            fontSize?: string;
-            fontFamily?: string;
-          };
-          value?: {
-            show?: boolean;
-            fontSize?: string;
-            fontFamily?: string;
-            formatter?: (val: number) => string;
-          };
-          total?: {
-            show?: boolean;
-            fontSize?: string;
-            fontFamily?: string;
-            label?: string;
-            formatter?: (w: ApexDonutTotalFormatter) => string;
-          };
-        };
-      };
-    };
-  };
-  labels?: string[];
-  noData?: {
-    text?: string;
-    align?: "center" | "left" | "right";
-    verticalAlign?: "middle" | "top" | "bottom";
-    offsetX?: number;
-    offsetY?: number;
-    style?: {
-      color?: string;
-      fontSize?: string;
-      fontFamily?: string;
-    };
-  };
-}
-
-interface ApexDonutTotalFormatter {
-  globals: {
-    seriesTotals: number[];
-  };
-}
+import { ApexOptions } from "apexcharts";
 
 interface ApexChartSeries {
   name?: string;
@@ -174,7 +44,7 @@ interface ApexChartSeries {
 }
 
 interface ChartDataType {
-  options: ApexChartOptions;
+  options: ApexOptions;
   series: ApexChartSeries[] | number[];
 }
 
@@ -215,7 +85,7 @@ const HomePage = () => {
     sacolas: 0,
   });
 
-  // Estados para os gráficos
+  // Gráficos (mantém igual)
   const [vendasPorDia, setVendasPorDia] = useState<ChartDataType>({
     options: {
       chart: {
@@ -328,21 +198,19 @@ const HomePage = () => {
                 show: true,
                 fontSize: "18px",
                 fontFamily: "'Inter', sans-serif",
-                formatter: (val: string) => `${parseFloat(val)} un`,
+                formatter: (val: string) => `${val} un`,
               },
               total: {
                 show: true,
                 fontSize: "14px",
                 fontFamily: "'Inter', sans-serif",
                 label: "Total",
-                formatter: function (w: ApexDonutTotalFormatter) {
-                  return (
-                    w.globals.seriesTotals
-                      .reduce((a: number, b: number) => {
-                        return a + b;
-                      }, 0)
-                      .toString() + " un"
-                  );
+                formatter: function (w: any) {
+                  // w.globals.seriesTotals is an array of numbers
+                  const total = w.globals.seriesTotals
+                    ? w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0)
+                    : 0;
+                  return `${total} un`;
                 },
               },
             },
@@ -390,7 +258,7 @@ const HomePage = () => {
         show: false,
       },
       xaxis: {
-        categories: ["Pendentes", "Aceitos", "Concluídos", "Recusados"],
+        categories: ["Pendentes", "Confirmados", "Concluídos", "Recusados"],
         labels: {
           style: {
             colors: "#64748b",
@@ -452,432 +320,71 @@ const HomePage = () => {
     },
   ];
 
+  // Carregar pedidos da API e atualizar dashboard
+  const carregarPedidos = async () => {
+    const resultado = await pedidosService.getOrdersByBusiness();
+    if (resultado.success && resultado.data) {
+      setPedidosPendentes(
+        resultado.data.filter(
+          (p) =>
+            p.status === "pendente" ||
+            p.status === "confirmado" ||
+            p.status === "pago" ||
+            p.status === "preparando"
+        )
+      );
+    } else {
+      setPedidosPendentes([]);
+    }
+    atualizarDashboard();
+  };
+
   // Carregar dados iniciais
   useEffect(() => {
+    carregarPedidos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Função para atualizar todos os gráficos e estatísticas
+  const atualizarDashboard = () => {
     try {
-      // Carregar pedidos pendentes
-      const pedidos = pedidosService.obterPorStatus("pendente");
-      setPedidosPendentes(pedidos);
+      // Carregar estatísticas
+      const stats = pedidosService.obterEstatisticas();
+      setEstatisticas({
+        total: stats.total,
+        totalValor: stats.valorTotal,
+        sacolas: pedidosService.obterTodos().reduce(
+          (acc, pedido) => acc + (pedido.quantidadeSacolas || 0),
+          0
+        ),
+      });
 
-      // Carregar dados dos gráficos
-      const carregarDados = () => {
-        try {
-          // Carregar estatísticas
-          const stats = pedidosService.obterEstatisticas();
-          setEstatisticas({
-            total: stats.total,
-            totalValor: stats.valorTotal,
-            sacolas: pedidosService.pedidosMock.reduce(
-              (acc, pedido) => acc + (pedido.quantidadeSacolas || 0),
-              0
-            ),
-          });
-
-          // Preparar dados para o gráfico de status de pedidos
-          setStatusPedidos((prev) => ({
-            ...prev,
-            series: [
-              {
-                name: "Pedidos",
-                data: [
-                  stats.pendentes,
-                  stats.aceitos,
-                  stats.concluidos,
-                  stats.recusados,
-                ],
-              },
+      // Gráfico de status dos pedidos
+      setStatusPedidos((prev) => ({
+        ...prev,
+        series: [
+          {
+            name: "Pedidos",
+            data: [
+              stats.pendentes,
+              stats.confirmados,
+              stats.concluidos,
+              stats.recusados,
             ],
-          }));
-
-          // Preparar dados para o gráfico de vendas por dia
-          const ultimosDias = gerarUltimos7Dias();
-          const vendasPorDiaData = ultimosDias.map((data) => {
-            const pedidosDoDia = pedidosService.pedidosMock.filter(
-              (p) => p.data === data && p.status !== "recusado"
-            );
-            return pedidosDoDia.reduce((acc, pedido) => acc + pedido.valor, 0);
-          });
-
-          setVendasPorDia((prev) => ({
-            ...prev,
-            options: {
-              ...prev.options,
-              xaxis: {
-                ...prev.options.xaxis,
-                categories: ultimosDias.map(formatarDataParaExibicao),
-              },
-            },
-            series: [
-              {
-                name: "Vendas",
-                data: vendasPorDiaData,
-              },
-            ],
-          }));
-
-          // Preparar dados para o gráfico de sacolas vendidas
-          const sacolasAgrupadas: Record<string, number> = {};
-          pedidosService.pedidosMock
-            .filter((p) => p.status !== "recusado")
-            .forEach((pedido) => {
-              if (!sacolasAgrupadas[pedido.produto]) {
-                sacolasAgrupadas[pedido.produto] = 0;
-              }
-              sacolasAgrupadas[pedido.produto] += pedido.quantidadeSacolas || 0;
-            });
-
-          const sacolasArray: SacolaVendida[] = Object.entries(
-            sacolasAgrupadas
-          ).map(([nome, quantidade]) => ({
-            nome,
-            quantidade,
-          }));
-
-          // Limitando a 5 tipos para melhor visualização
-          const topSacolas = sacolasArray
-            .sort((a, b) => b.quantidade - a.quantidade)
-            .slice(0, 5);
-
-          // Verificar se há dados para evitar erros de renderização
-          if (topSacolas.length > 0) {
-            setSacolasVendidas({
-              options: {
-                chart: {
-                  type: "donut",
-                },
-                labels: topSacolas.map((s) => s.nome),
-                colors: ["#037335", "#129B53", "#30B171", "#7BD9A1", "#AFF3C2"],
-                dataLabels: {
-                  enabled: true,
-                },
-                legend: {
-                  position: "bottom",
-                  fontFamily: "'Inter', sans-serif",
-                },
-                tooltip: {
-                  y: {
-                    formatter: (value: number) => `${value} unidades`,
-                  },
-                },
-                plotOptions: {
-                  pie: {
-                    donut: {
-                      size: "65%",
-                      labels: {
-                        show: true,
-                        name: {
-                          show: true,
-                          fontSize: "14px",
-                          fontFamily: "'Inter', sans-serif",
-                        },
-                        value: {
-                          show: true,
-                          fontSize: "18px",
-                          fontFamily: "'Inter', sans-serif",
-                          formatter: (val: number) => `${val} un`,
-                        },
-                        total: {
-                          show: true,
-                          fontSize: "14px",
-                          fontFamily: "'Inter', sans-serif",
-                          label: "Total",
-                          formatter: function (w: ApexDonutTotalFormatter) {
-                            return (
-                              w.globals.seriesTotals.reduce(
-                                (a: number, b: number) => {
-                                  return a + b;
-                                },
-                                0
-                              ) + " un"
-                            );
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-                xaxis: {
-                  categories: topSacolas.map((s) => s.nome),
-                },
-              },
-              series: topSacolas.map((s) => s.quantidade),
-            });
-          } else {
-            // Se não há dados, garantir que o gráfico de donut tenha um valor padrão
-            setSacolasVendidas({
-              options: {
-                chart: {
-                  type: "donut",
-                },
-                labels: ["Sem dados disponíveis"],
-                colors: ["#cccccc"],
-                dataLabels: {
-                  enabled: true,
-                },
-                legend: {
-                  position: "bottom",
-                  fontFamily: "'Inter', sans-serif",
-                },
-                plotOptions: {
-                  pie: {
-                    donut: {
-                      size: "65%",
-                      labels: {
-                        show: true,
-                      },
-                    },
-                  },
-                },
-                xaxis: {
-                  categories: ["Sem dados"],
-                },
-              },
-              series: [0],
-            });
-          }
-        } catch (error) {
-          console.error("Erro ao carregar dados dos gráficos:", error);
-        }
-      };
-
-      carregarDados();
+          },
+        ],
+      }));
     } catch (error) {
-      console.error("Erro ao carregar dados iniciais:", error);
+      console.error("Erro ao carregar dados dos gráficos:", error);
     }
-  }, []); // Array de dependências vazio para executar apenas uma vez na montagem
-
-  // Função para gerar array com as datas dos últimos 7 dias
-  const gerarUltimos7Dias = (): string[] => {
-    const datas: string[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const data = new Date();
-      data.setDate(data.getDate() - i);
-      datas.push(formatarData(data));
-    }
-    return datas;
-  };
-
-  // Formatar data para o formato DD/MM/YYYY
-  const formatarData = (data: Date): string => {
-    return `${String(data.getDate()).padStart(2, "0")}/${String(
-      data.getMonth() + 1
-    ).padStart(2, "0")}/${data.getFullYear()}`;
-  };
-
-  // Formatar data para exibição no gráfico (formato curto DD/MM)
-  const formatarDataParaExibicao = (dataString: string): string => {
-    const partes = dataString.split("/");
-    return `${partes[0]}/${partes[1]}`;
-  };
-
-  // Formatar moeda para o formato brasileiro
-  const formatarMoeda = (valor: number): string => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(valor);
   };
 
   // Função para aceitar um pedido
-  const handleAceitarPedido = (id: string): void => {
+  const handleAceitarPedido = async (id: string): Promise<void> => {
     try {
-      const pedidoAtualizado = pedidosService.atualizarStatus(id, "aceito");
+      const pedidoAtualizado = await pedidosService.atualizarStatus(id, "confirmado");
       if (pedidoAtualizado) {
-        setPedidosPendentes((prev) => prev.filter((p) => p.id !== id));
-
-        // Recarregar dados dos gráficos para refletir a mudança
-        const carregarDados = () => {
-          try {
-            // Carregar estatísticas
-            const stats = pedidosService.obterEstatisticas();
-            setEstatisticas({
-              total: stats.total,
-              totalValor: stats.valorTotal,
-              sacolas: pedidosService.pedidosMock.reduce(
-                (acc, pedido) => acc + (pedido.quantidadeSacolas || 0),
-                0
-              ),
-            });
-
-            // Preparar dados para o gráfico de status de pedidos
-            setStatusPedidos((prev) => ({
-              ...prev,
-              series: [
-                {
-                  name: "Pedidos",
-                  data: [
-                    stats.pendentes,
-                    stats.aceitos,
-                    stats.concluidos,
-                    stats.recusados,
-                  ],
-                },
-              ],
-            }));
-
-            // Preparar dados para o gráfico de vendas por dia
-            const ultimosDias = gerarUltimos7Dias();
-            const vendasPorDiaData = ultimosDias.map((data) => {
-              const pedidosDoDia = pedidosService.pedidosMock.filter(
-                (p) => p.data === data && p.status !== "recusado"
-              );
-              return pedidosDoDia.reduce(
-                (acc, pedido) => acc + pedido.valor,
-                0
-              );
-            });
-
-            setVendasPorDia((prev) => ({
-              ...prev,
-              options: {
-                ...prev.options,
-                xaxis: {
-                  ...prev.options.xaxis,
-                  categories: ultimosDias.map(formatarDataParaExibicao),
-                },
-              },
-              series: [
-                {
-                  name: "Vendas",
-                  data: vendasPorDiaData,
-                },
-              ],
-            }));
-
-            // Preparar dados para o gráfico de sacolas vendidas
-            const sacolasAgrupadas: Record<string, number> = {};
-            pedidosService.pedidosMock
-              .filter((p) => p.status !== "recusado")
-              .forEach((pedido) => {
-                if (!sacolasAgrupadas[pedido.produto]) {
-                  sacolasAgrupadas[pedido.produto] = 0;
-                }
-                sacolasAgrupadas[pedido.produto] +=
-                  pedido.quantidadeSacolas || 0;
-              });
-
-            const sacolasArray: SacolaVendida[] = Object.entries(
-              sacolasAgrupadas
-            ).map(([nome, quantidade]) => ({
-              nome,
-              quantidade,
-            }));
-
-            // Limitando a 5 tipos para melhor visualização
-            const topSacolas = sacolasArray
-              .sort((a, b) => b.quantidade - a.quantidade)
-              .slice(0, 5);
-
-            // Verificar se há dados para evitar erros de renderização
-            if (topSacolas.length > 0) {
-              setSacolasVendidas({
-                options: {
-                  chart: {
-                    type: "donut",
-                  },
-                  labels: topSacolas.map((s) => s.nome),
-                  colors: [
-                    "#037335",
-                    "#129B53",
-                    "#30B171",
-                    "#7BD9A1",
-                    "#AFF3C2",
-                  ],
-                  dataLabels: {
-                    enabled: true,
-                  },
-                  legend: {
-                    position: "bottom",
-                    fontFamily: "'Inter', sans-serif",
-                  },
-                  tooltip: {
-                    y: {
-                      formatter: (value: number) => `${value} unidades`,
-                    },
-                  },
-                  plotOptions: {
-                    pie: {
-                      donut: {
-                        size: "65%",
-                        labels: {
-                          show: true,
-                          name: {
-                            show: true,
-                            fontSize: "14px",
-                            fontFamily: "'Inter', sans-serif",
-                          },
-                          value: {
-                            show: true,
-                            fontSize: "18px",
-                            fontFamily: "'Inter', sans-serif",
-                            formatter: (val: number) => `${val} un`,
-                          },
-                          total: {
-                            show: true,
-                            fontSize: "14px",
-                            fontFamily: "'Inter', sans-serif",
-                            label: "Total",
-                            formatter: function (w: ApexDonutTotalFormatter) {
-                              return (
-                                w.globals.seriesTotals.reduce(
-                                  (a: number, b: number) => {
-                                    return a + b;
-                                  },
-                                  0
-                                ) + " un"
-                              );
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                  xaxis: {
-                    categories: topSacolas.map((s) => s.nome),
-                  },
-                },
-                series: topSacolas.map((s) => s.quantidade),
-              });
-            } else {
-              // Se não há dados, garantir que o gráfico de donut tenha um valor padrão
-              setSacolasVendidas({
-                options: {
-                  chart: {
-                    type: "donut",
-                  },
-                  labels: ["Sem dados disponíveis"],
-                  colors: ["#cccccc"],
-                  dataLabels: {
-                    enabled: true,
-                  },
-                  legend: {
-                    position: "bottom",
-                    fontFamily: "'Inter', sans-serif",
-                  },
-                  plotOptions: {
-                    pie: {
-                      donut: {
-                        size: "65%",
-                        labels: {
-                          show: true,
-                        },
-                      },
-                    },
-                  },
-                  xaxis: {
-                    categories: ["Sem dados"],
-                  },
-                },
-                series: [0],
-              });
-            }
-          } catch (error) {
-            console.error("Erro ao carregar dados dos gráficos:", error);
-          }
-        };
-
-        carregarDados();
-
+        carregarPedidos();
         setAlert({
           visible: true,
           texto: `Pedido ${id} aceito com sucesso!`,
@@ -885,7 +392,6 @@ const HomePage = () => {
         });
       }
     } catch (error) {
-      console.error("Erro ao aceitar pedido:", error);
       setAlert({
         visible: true,
         texto: `Erro ao aceitar o pedido. Tente novamente.`,
@@ -895,205 +401,11 @@ const HomePage = () => {
   };
 
   // Função para recusar um pedido
-  const handleRecusarPedido = (id: string): void => {
+  const handleRecusarPedido = async (id: string): Promise<void> => {
     try {
-      const pedidoAtualizado = pedidosService.atualizarStatus(id, "recusado");
+      const pedidoAtualizado = await pedidosService.atualizarStatus(id, "cancelado");
       if (pedidoAtualizado) {
-        setPedidosPendentes((prev) => prev.filter((p) => p.id !== id));
-
-        // Recarregar dados dos gráficos para refletir a mudança
-        const carregarDados = () => {
-          try {
-            // Carregar estatísticas
-            const stats = pedidosService.obterEstatisticas();
-            setEstatisticas({
-              total: stats.total,
-              totalValor: stats.valorTotal,
-              sacolas: pedidosService.pedidosMock.reduce(
-                (acc, pedido) => acc + (pedido.quantidadeSacolas || 0),
-                0
-              ),
-            });
-
-            // Preparar dados para o gráfico de status de pedidos
-            setStatusPedidos((prev) => ({
-              ...prev,
-              series: [
-                {
-                  name: "Pedidos",
-                  data: [
-                    stats.pendentes,
-                    stats.aceitos,
-                    stats.concluidos,
-                    stats.recusados,
-                  ],
-                },
-              ],
-            }));
-
-            // Preparar dados para o gráfico de vendas por dia
-            const ultimosDias = gerarUltimos7Dias();
-            const vendasPorDiaData = ultimosDias.map((data) => {
-              const pedidosDoDia = pedidosService.pedidosMock.filter(
-                (p) => p.data === data && p.status !== "recusado"
-              );
-              return pedidosDoDia.reduce(
-                (acc, pedido) => acc + pedido.valor,
-                0
-              );
-            });
-
-            setVendasPorDia((prev) => ({
-              ...prev,
-              options: {
-                ...prev.options,
-                xaxis: {
-                  ...prev.options.xaxis,
-                  categories: ultimosDias.map(formatarDataParaExibicao),
-                },
-              },
-              series: [
-                {
-                  name: "Vendas",
-                  data: vendasPorDiaData,
-                },
-              ],
-            }));
-
-            // Preparar dados para o gráfico de sacolas vendidas
-            const sacolasAgrupadas: Record<string, number> = {};
-            pedidosService.pedidosMock
-              .filter((p) => p.status !== "recusado")
-              .forEach((pedido) => {
-                if (!sacolasAgrupadas[pedido.produto]) {
-                  sacolasAgrupadas[pedido.produto] = 0;
-                }
-                sacolasAgrupadas[pedido.produto] +=
-                  pedido.quantidadeSacolas || 0;
-              });
-
-            const sacolasArray: SacolaVendida[] = Object.entries(
-              sacolasAgrupadas
-            ).map(([nome, quantidade]) => ({
-              nome,
-              quantidade,
-            }));
-
-            // Limitando a 5 tipos para melhor visualização
-            const topSacolas = sacolasArray
-              .sort((a, b) => b.quantidade - a.quantidade)
-              .slice(0, 5);
-
-            // Verificar se há dados para evitar erros de renderização
-            if (topSacolas.length > 0) {
-              setSacolasVendidas({
-                options: {
-                  chart: {
-                    type: "donut",
-                  },
-                  labels: topSacolas.map((s) => s.nome),
-                  colors: [
-                    "#037335",
-                    "#129B53",
-                    "#30B171",
-                    "#7BD9A1",
-                    "#AFF3C2",
-                  ],
-                  dataLabels: {
-                    enabled: true,
-                  },
-                  legend: {
-                    position: "bottom",
-                    fontFamily: "'Inter', sans-serif",
-                  },
-                  tooltip: {
-                    y: {
-                      formatter: (value: number) => `${value} unidades`,
-                    },
-                  },
-                  plotOptions: {
-                    pie: {
-                      donut: {
-                        size: "65%",
-                        labels: {
-                          show: true,
-                          name: {
-                            show: true,
-                            fontSize: "14px",
-                            fontFamily: "'Inter', sans-serif",
-                          },
-                          value: {
-                            show: true,
-                            fontSize: "18px",
-                            fontFamily: "'Inter', sans-serif",
-                            formatter: (val: number) => `${val} un`,
-                          },
-                          total: {
-                            show: true,
-                            fontSize: "14px",
-                            fontFamily: "'Inter', sans-serif",
-                            label: "Total",
-                            formatter: function (w: ApexDonutTotalFormatter) {
-                              return (
-                                w.globals.seriesTotals.reduce(
-                                  (a: number, b: number) => {
-                                    return a + b;
-                                  },
-                                  0
-                                ) + " un"
-                              );
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                  xaxis: {
-                    categories: topSacolas.map((s) => s.nome),
-                  },
-                },
-                series: topSacolas.map((s) => s.quantidade),
-              });
-            } else {
-              // Se não há dados, garantir que o gráfico de donut tenha um valor padrão
-              setSacolasVendidas({
-                options: {
-                  chart: {
-                    type: "donut",
-                  },
-                  labels: ["Sem dados disponíveis"],
-                  colors: ["#cccccc"],
-                  dataLabels: {
-                    enabled: true,
-                  },
-                  legend: {
-                    position: "bottom",
-                    fontFamily: "'Inter', sans-serif",
-                  },
-                  plotOptions: {
-                    pie: {
-                      donut: {
-                        size: "65%",
-                        labels: {
-                          show: true,
-                        },
-                      },
-                    },
-                  },
-                  xaxis: {
-                    categories: ["Sem dados"],
-                  },
-                },
-                series: [0],
-              });
-            }
-          } catch (error) {
-            console.error("Erro ao carregar dados dos gráficos:", error);
-          }
-        };
-
-        carregarDados();
-
+        carregarPedidos();
         setAlert({
           visible: true,
           texto: `Pedido ${id} recusado.`,
@@ -1101,7 +413,6 @@ const HomePage = () => {
         });
       }
     } catch (error) {
-      console.error("Erro ao recusar pedido:", error);
       setAlert({
         visible: true,
         texto: `Erro ao recusar o pedido. Tente novamente.`,
@@ -1110,9 +421,95 @@ const HomePage = () => {
     }
   };
 
+  // Função para marcar um pedido como em preparo
+  const handlePrepararPedido = async (id: string): Promise<void> => {
+    try {
+      const pedidoAtualizado = await pedidosService.atualizarStatus(id, "preparando");
+      if (pedidoAtualizado) {
+        carregarPedidos();
+        setAlert({
+          visible: true,
+          texto: `Pedido ${id} está sendo preparado.`,
+          tipo: "info",
+        });
+      }
+    } catch (error) {
+      setAlert({
+        visible: true,
+        texto: `Erro ao preparar o pedido. Tente novamente.`,
+        tipo: "error",
+      });
+    }
+  };
+
+  // Função para marcar um pedido como pronto
+  const handleProntoPedido = async (id: string): Promise<void> => {
+    try {
+      const pedidoAtualizado = await pedidosService.atualizarStatus(id, "pronto");
+      if (pedidoAtualizado) {
+        carregarPedidos();
+        setAlert({
+          visible: true,
+          texto: `Pedido ${id} está pronto para entrega.`,
+          tipo: "info",
+        });
+      }
+    } catch (error) {
+      setAlert({
+        visible: true,
+        texto: `Erro ao atualizar o status do pedido. Tente novamente.`,
+        tipo: "error",
+      });
+    }
+  };
+
   // Fechar alerta
   const handleCloseAlert = (): void => {
     setAlert((prev) => ({ ...prev, visible: false }));
+  };
+
+  // Função para renderizar botões de ação conforme status
+  const renderizarAcoesPedido = (pedido: Pedido) => {
+    switch (pedido.status) {
+      case "pendente":
+        return (
+          <>
+            <button
+              onClick={() => handleAceitarPedido(pedido.id)}
+              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-4 rounded-lg hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
+            >
+              <FaCheck className="mr-1" /> Aceitar
+            </button>
+            <button
+              onClick={() => handleRecusarPedido(pedido.id)}
+              className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
+            >
+              <FaTimes className="mr-1" /> Recusar
+            </button>
+          </>
+        );
+      case "confirmado":
+      case "pago":
+        return (
+          <button
+            onClick={() => handlePrepararPedido(pedido.id)}
+            className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
+          >
+            <FaCheck className="mr-1" /> Iniciar Preparo
+          </button>
+        );
+      case "preparando":
+        return (
+          <button
+            onClick={() => handleProntoPedido(pedido.id)}
+            className="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-2 px-4 rounded-lg hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
+          >
+            <FaCheck className="mr-1" /> Marcar como Pronto
+          </button>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -1293,15 +690,16 @@ const HomePage = () => {
                       Nova Sacola
                     </div>
                   }
-                  titleModal="Sugerir Nova Sacola"
-                  textModal="Preencha o formulário abaixo para sugerir um novo modelo de sacola sustentável. Nossa equipe analisará sua sugestão e entrará em contato em breve."
+                  title="Sugerir Nova Sacola"
                   footer={
                     <div className="flex justify-end space-x-2">
                       <SecondaryButton>Cancelar</SecondaryButton>
                       <PrimaryButton>Enviar Sugestão</PrimaryButton>
                     </div>
                   }
-                />
+                >
+                  Preencha o formulário abaixo para sugerir um novo modelo de sacola sustentável. Nossa equipe analisará sua sugestão e entrará em contato em breve.
+                </ModalComponent>
               </div>
 
               {pedidosPendentes.length > 0 ? (
@@ -1311,7 +709,7 @@ const HomePage = () => {
                       <div className="flex items-center">
                         <FaBell className="text-amber-500 text-xl mr-2" />
                         <span className="font-medium text-amber-800">
-                          Você tem pedidos aguardando aceitação
+                          Você tem pedidos aguardando ação
                         </span>
                       </div>
                       <span className="bg-amber-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -1335,7 +733,7 @@ const HomePage = () => {
                                 </span>
                                 <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-medium ml-2 inline-flex items-center">
                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1"></span>
-                                  Pendente
+                                  {pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1)}
                                 </span>
                               </div>
                               <div className="text-sm text-gray-600">
@@ -1359,32 +757,19 @@ const HomePage = () => {
                               </div>
                             </div>
                             <div className="flex items-center space-x-2 sm:self-center">
-                              <button
-                                onClick={() => handleAceitarPedido(pedido.id)}
-                                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-4 rounded-lg hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
-                              >
-                                <FaCheck className="mr-1" /> Aceitar
-                              </button>
-                              <button
-                                onClick={() => handleRecusarPedido(pedido.id)}
-                                className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
-                              >
-                                <FaTimes className="mr-1" /> Recusar
-                              </button>
+                              {renderizarAcoesPedido(pedido)}
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
-
                     {pedidosPendentes.length > 3 && (
                       <div className="mt-4 text-center">
                         <a
                           href="/private/pedidos?tab=pendentes"
                           className="text-[#037335] hover:underline inline-flex items-center text-sm font-medium"
                         >
-                          Ver todos os {pedidosPendentes.length} pedidos
-                          pendentes
+                          Ver todos os {pedidosPendentes.length} pedidos pendentes
                           <FaArrowRight className="ml-1 text-lg" />
                         </a>
                       </div>
@@ -1400,7 +785,7 @@ const HomePage = () => {
                     Nenhum pedido pendente
                   </h3>
                   <p className="text-green-600">
-                    Você está em dia! Não há pedidos aguardando aceitação.
+                    Você está em dia! Não há pedidos aguardando ação.
                   </p>
                 </div>
               )}

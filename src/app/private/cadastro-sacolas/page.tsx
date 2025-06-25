@@ -32,7 +32,7 @@ const CadastroSacolasPage = () => {
   const [selectedBag, setSelectedBag] = useState<Bag | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [filters, setFilters] = useState({
-    status: "all" as "all" | "1" | "0",
+    status: "1" as "all" | "1" | "0",
     type: "all" as "all" | "Doce" | "Salgada" | "Mista",
   });
   const [sortBy, setSortBy] = useState<"price" | "createdAt">("createdAt");
