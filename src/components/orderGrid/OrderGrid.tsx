@@ -9,6 +9,8 @@ interface OrderGridProps {
   onAceitarPedido: (id: string) => void;
   onRecusarPedido: (id: string) => void;
   onConcluirPedido: (id: string) => void;
+  onPrepararPedido: (id: string) => void;
+  onProntoPedido: (id: string) => void;
 }
 
 const OrderGrid: React.FC<OrderGridProps> = ({
@@ -17,6 +19,8 @@ const OrderGrid: React.FC<OrderGridProps> = ({
   onAceitarPedido,
   onRecusarPedido,
   onConcluirPedido,
+  onPrepararPedido,
+  onProntoPedido,
 }) => {
   if (pedidos.length === 0) {
     return (
@@ -45,6 +49,8 @@ const OrderGrid: React.FC<OrderGridProps> = ({
           onAceitar={onAceitarPedido}
           onRecusar={onRecusarPedido}
           onConcluir={onConcluirPedido}
+          onPreparar={onPrepararPedido}
+          onPronto={onProntoPedido}
         />
       ))}
     </div>

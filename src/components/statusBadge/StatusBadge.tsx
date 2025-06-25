@@ -15,25 +15,46 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
           Pendente
         </span>
       );
-    case "aceito":
+    case "confirmado":
       return (
         <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center">
           <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
-          Aceito
+          Confirmado
         </span>
       );
-    case "concluido":
+    case "pronto": 
+      return (
+        <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center">
+          <span className="w-2 h-2 rounded-full bg-yellow-500 mr-1.5"></span>
+          Pronto
+        </span>
+      );
+    case "preparando":
       return (
         <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center">
           <span className="w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span>
-          Concluído
+          Preparando
         </span>
       );
-    case "recusado":
+    case "entregue":
       return (
-        <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center">
-          <span className="w-2 h-2 rounded-full bg-red-500 mr-1.5"></span>
-          Recusado
+        <span className="bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center">
+          <span className="w-2 h-2 rounded-full bg-teal-500 mr-1.5"></span>
+          Entregue
+        </span>
+      );
+    case "pago":
+      return (
+        <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center">
+          <span className="w-2 h-2 rounded-full bg-purple-500 mr-1.5"></span>
+          Pago
+        </span>
+      );
+    case "cancelado":
+      return (
+        <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center">
+          <span className="w-2 h-2 rounded-full bg-gray-500 mr-1.5"></span>
+          Cancelado
         </span>
       );
     default:

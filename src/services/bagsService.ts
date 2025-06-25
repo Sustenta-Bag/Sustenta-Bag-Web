@@ -1,7 +1,5 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
-<<<<<<< HEAD
-=======
 
 export const ALLOWED_TAGS = [
   "PODE_CONTER_GLUTEN",
@@ -21,7 +19,6 @@ export const ALLOWED_TAGS = [
 ] as const;
 
 export type BagTag = (typeof ALLOWED_TAGS)[number];
->>>>>>> d7f61091bd582943771fc1c6bc31fdf5d3331325
 
 export interface Bag {
   id: number;
@@ -90,11 +87,7 @@ class BagsService {
           message: errorData.message || "Erro ao criar sacola",
         };
       }
-<<<<<<< HEAD
  
-      const data = await response.json();
-=======
-
       const responseText = await response.text();
       let data = null;
 
@@ -108,7 +101,6 @@ class BagsService {
         data = { id: Date.now(), message: "Sacola criada com sucesso" };
       }
 
->>>>>>> d7f61091bd582943771fc1c6bc31fdf5d3331325
       return {
         success: true,
         data,

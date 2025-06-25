@@ -10,6 +10,8 @@ interface OrderCardProps {
   onAceitar: (id: string) => void;
   onRecusar: (id: string) => void;
   onConcluir: (id: string) => void;
+  onPreparar: (id: string) => void;
+  onPronto: (id: string) => void;
 }
 
 const OrderCard: React.FC<OrderCardProps> = ({
@@ -18,6 +20,8 @@ const OrderCard: React.FC<OrderCardProps> = ({
   onAceitar,
   onRecusar,
   onConcluir,
+  onPreparar,
+  onPronto,
 }) => {
   const renderizarAcoes = () => {
     switch (pedido.status) {
@@ -44,16 +48,41 @@ const OrderCard: React.FC<OrderCardProps> = ({
             </button>
           </div>
         );
-      case "aceito":
+      case "confirmado":
+      case "pago":
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPreparar(pedido.id);
+            }}
+            className="w-full mt-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 rounded-md hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
+          >
+            <i className="bx bx-cog mr-1"></i> Iniciar Preparo
+          </button>
+        );
+      case "preparando":
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPronto(pedido.id);
+            }}
+            className="w-full mt-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-2 rounded-md hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
+          >
+            <i className="bx bx-package mr-1"></i> Marcar como Pronto
+          </button>
+        );
+      case "pronto":
         return (
           <button
             onClick={(e) => {
               e.stopPropagation();
               onConcluir(pedido.id);
             }}
-            className="w-full mt-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 rounded-md hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
+            className="w-full mt-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white py-2 rounded-md hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center"
           >
-            <i className="bx bx-package mr-1"></i> Concluir
+            <i className="bx bx-check-double mr-1"></i> Concluir Entrega
           </button>
         );
       default:

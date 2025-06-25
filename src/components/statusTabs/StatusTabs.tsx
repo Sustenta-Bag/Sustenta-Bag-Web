@@ -1,7 +1,7 @@
 // src/components/pedidos/StatusTabs.tsx
 import React from "react";
 
-export type ActiveTabType = "todos" | "pendentes" | "aceitos" | "concluidos";
+export type ActiveTabType = "todos" | "pendentes" | "confirmados" | "concluidos";
 
 interface StatusTabsProps {
   activeTab: ActiveTabType;
@@ -31,8 +31,8 @@ const StatusTabs: React.FC<StatusTabsProps> = ({ activeTab, onTabChange }) => {
       activeColorClass: "border-amber-500 text-amber-700 bg-amber-50",
     },
     {
-      key: "aceitos",
-      label: "Em Processo",
+      key: "confirmados",
+      label: "Confirmados",
       icon: "bx-cycling",
       colorClass: "text-gray-500 hover:text-gray-700 hover:bg-gray-50",
       activeColorClass: "border-blue-500 text-blue-700 bg-blue-50",

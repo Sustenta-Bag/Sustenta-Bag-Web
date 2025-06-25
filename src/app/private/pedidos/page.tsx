@@ -51,7 +51,7 @@ const PedidosPage = () => {
   const [estatisticas, setEstatisticas] = useState({
     total: 0,
     pendentes: 0,
-    aceitos: 0,
+    confirmados: 0,
     concluidos: 0,
     recusados: 0,
     valorTotal: 0,
@@ -77,7 +77,8 @@ const PedidosPage = () => {
       icon: "bx-cog",
       position: "right",
     },
-  ];  useEffect(() => {
+  ];
+  useEffect(() => {
     const carregarPedidos = async () => {
       setCarregando(true);
       try {
@@ -132,8 +133,8 @@ const PedidosPage = () => {
       const statusMap: Record<ActiveTabType, Pedido["status"] | null> = {
         todos: null,
         pendentes: "pendente",
-        aceitos: "aceito",
-        concluidos: "concluido",
+        confirmados: "confirmado",
+        concluidos: "entregue",
       };
       const statusFiltro = statusMap[activeTab];
       if (statusFiltro) {
@@ -220,9 +221,9 @@ const PedidosPage = () => {
     setEstatisticas(pedidosService.obterEstatisticas());
   };
   const handleAceitarPedido = async (id: string) => {
-    const pedidoAtualizado = await pedidosService.atualizarStatus(id, "aceito");
+    const pedidoAtualizado = await pedidosService.atualizarStatus(id, "confirmado");
     if (pedidoAtualizado) {
-      atualizarPedidoLocalmente(id, "aceito");
+      atualizarPedidoLocalmente(id, "confirmado");
       setAlert({
         visible: true,
         texto: `Pedido ${id} aceito com sucesso!`,
@@ -234,13 +235,14 @@ const PedidosPage = () => {
         texto: `Erro ao aceitar o pedido ${id}.`,
         tipo: "error",
       });
+      console.error("Erro ao aceitar o pedido:", pedidoAtualizado);
     }
   };
 
   const handleConcluirPedido = async (id: string) => {
-    const pedidoAtualizado = await pedidosService.atualizarStatus(id, "concluido");
+    const pedidoAtualizado = await pedidosService.atualizarStatus(id, "entregue");
     if (pedidoAtualizado) {
-      atualizarPedidoLocalmente(id, "concluido");
+      atualizarPedidoLocalmente(id, "entregue");
       setAlert({
         visible: true,
         texto: `Pedido ${id} concluído com sucesso!`,
@@ -252,13 +254,14 @@ const PedidosPage = () => {
         texto: `Erro ao concluir o pedido ${id}.`,
         tipo: "error",
       });
+      console.error("Erro ao concluir o pedido:", pedidoAtualizado);
     }
   };
 
   const handleRecusarPedido = async (id: string) => {
-    const pedidoAtualizado = await pedidosService.atualizarStatus(id, "recusado");
+    const pedidoAtualizado = await pedidosService.atualizarStatus(id, "cancelado");
     if (pedidoAtualizado) {
-      atualizarPedidoLocalmente(id, "recusado");
+      atualizarPedidoLocalmente(id, "cancelado");
       setAlert({
         visible: true,
         texto: `Pedido ${id} recusado.`,
@@ -274,6 +277,49 @@ const PedidosPage = () => {
         texto: `Erro ao recusar o pedido ${id}.`,
         tipo: "error",
       });
+      console.error("Erro ao recusar o pedido:", pedidoAtualizado);
+    }
+  };
+
+  const handlePrepararPedido = async (id: string): Promise<void> => {
+    try {
+      const pedidoAtualizado = await pedidosService.atualizarStatus(id, "preparando");
+      if (pedidoAtualizado) {
+        atualizarDashboard();
+        setAlert({
+          visible: true,
+          texto: `Pedido ${id} está sendo preparado.`,
+          tipo: "info",
+        });
+      }
+    } catch (error) {
+      setAlert({
+        visible: true,
+        texto: `Erro ao iniciar preparo do pedido.`,
+        tipo: "error",
+      });
+      console.error("Erro ao iniciar preparo do pedido:", error);
+    }
+  };
+
+  const handleProntoPedido = async (id: string): Promise<void> => {
+    try {
+      const pedidoAtualizado = await pedidosService.atualizarStatus(id, "pronto");
+      if (pedidoAtualizado) {
+        atualizarDashboard();
+        setAlert({
+          visible: true,
+          texto: `Pedido ${id} está pronto para entrega.`,
+          tipo: "info",
+        });
+      }
+    } catch (error) {
+      setAlert({
+        visible: true,
+        texto: `Erro ao marcar pedido como pronto.`,
+        tipo: "error",
+      });
+      console.error("Erro ao marcar pedido como pronto:", error);
     }
   };
 
@@ -305,7 +351,7 @@ const PedidosPage = () => {
             </PrimaryButton>
           </>
         );
-      case "aceito":
+      case "confirmado":
         return (
           <PrimaryButton
             onClick={() => handleConcluirPedido(pedidoSelecionado.id)}
@@ -319,6 +365,19 @@ const PedidosPage = () => {
             Fechar
           </PrimaryButton>
         );
+    }
+  };
+
+  const atualizarDashboard = async () => {
+    setCarregando(true);
+    try {
+      const resultado = await pedidosService.getOrdersByBusiness();
+      if (resultado.success && resultado.data) {
+        setPedidos(resultado.data);
+        setEstatisticas(pedidosService.obterEstatisticas());
+      }
+    } finally {
+      setCarregando(false);
     }
   };
 
@@ -363,7 +422,7 @@ const PedidosPage = () => {
               />
               <Card
                 titulo="Em Processo"
-                valor={estatisticas.aceitos}
+                valor={estatisticas.confirmados}
                 descricao="Em preparação"
                 corBorda="border-blue-500"
                 corIconeBg="bg-blue-100"
@@ -407,6 +466,8 @@ const PedidosPage = () => {
               onAceitarPedido={handleAceitarPedido}
               onRecusarPedido={handleRecusarPedido}
               onConcluirPedido={handleConcluirPedido}
+              onPrepararPedido={handlePrepararPedido}   // ADICIONE ESTA LINHA
+              onProntoPedido={handleProntoPedido}       // ADICIONE ESTA LINHA
             />
           ) : (
             <div className="bg-white shadow-md rounded-lg p-8 mt-4 text-center">
@@ -443,3 +504,4 @@ const PedidosPage = () => {
 };
 
 export default PedidosPage;
+
