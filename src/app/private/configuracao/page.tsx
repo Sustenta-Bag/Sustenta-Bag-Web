@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/navbar/Navbar";
 import AlertComponent from "@/components/alertComponent/Alert";
+import { businessService, BusinessUpdateData } from "@/services/businessService";
 
 // Definindo os tipos de links da navbar de acordo com o componente
 interface NavLink {
@@ -15,8 +17,11 @@ interface NavLink {
 }
 
 const ConfiguracaoPage = () => {
-  const { user } = useAuth();
+  const { user, idBusiness } = useAuth();
   const [activeTab, setActiveTab] = useState("perfil");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [alert, setAlert] = useState({
     visible: false,
     texto: "",
@@ -39,96 +44,85 @@ const ConfiguracaoPage = () => {
       position: "right",
     },
   ];
-  // Perfil inicial com dados do usuário
-  const [perfilForm, setPerfilForm] = useState({
-    nomeFantasia: user?.legalName || "",
-    email: user?.email || "",
+
+  // Formulário de empresa com todos os campos necessários
+  const [empresaForm, setEmpresaForm] = useState({
+    legalName: user?.legalName || "",
     cnpj: user?.cnpj || "",
-    cidade: user?.address?.city || "",
-    bairro: user?.address?.complement || "",
-    rua: user?.address?.street || "",
-    numero: user?.address?.number || "",
-    cep: user?.address?.zipCode || "",
+    appName: user?.appName || "",
+    cellphone: user?.cellphone || "",
+    description: user?.description || "",
+    delivery: user?.delivery || false,
+    deliveryTax: user?.deliveryTax || 0,
+    develiveryTime: 30, // Valor padrão
+    openingHours: "08:00-18:00", // Valor padrão
   });
 
-  // Formulário de segurança/senha
-  const [senhaForm, setSenhaForm] = useState({
-    senhaAtual: "",
-    novaSenha: "",
-    confirmarSenha: "",
-  });
 
-  // Preferências de notificação
-  const [notificacoes, setNotificacoes] = useState({
-    novoPedido: true,
-    statusPedido: true,
-    promocoes: false,
-    email: true,
-    sistema: true,
-  });
-
-  const handlePerfilChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPerfilForm((prev) => ({ ...prev, [name]: value }));
+  const handleEmpresaChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    setEmpresaForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+    }));
   };
 
-  const handleSenhaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setSenhaForm((prev) => ({ ...prev, [name]: value }));
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const handleNotificacaoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setNotificacoes((prev) => ({ ...prev, [name]: checked }));
-  };
-
-  const handleSubmitPerfil = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmitEmpresa = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Simulação de atualização do perfil
-    setAlert({
-      visible: true,
-      texto: "Perfil atualizado com sucesso!",
-      tipo: "success",
-    });
-  };
-
-  const handleSubmitSenha = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    // Validação de senha
-    if (senhaForm.novaSenha !== senhaForm.confirmarSenha) {
+    
+    if (!idBusiness) {
       setAlert({
         visible: true,
-        texto: "As senhas não conferem!",
+        texto: "ID da empresa não encontrado. Faça login novamente.",
         tipo: "error",
       });
       return;
     }
 
-    // Simulação de alteração de senha bem-sucedida
-    setAlert({
-      visible: true,
-      texto: "Senha alterada com sucesso!",
-      tipo: "success",
-    });
+    try {
+      const updateData: BusinessUpdateData = {
+        legalName: empresaForm.legalName,
+        cnpj: empresaForm.cnpj,
+        appName: empresaForm.appName,
+        cellphone: empresaForm.cellphone,
+        description: empresaForm.description,
+        delivery: empresaForm.delivery,
+        deliveryTax: empresaForm.deliveryTax,
+        develiveryTime: empresaForm.develiveryTime,
+        openingHours: empresaForm.openingHours,
+        idAddress: 1, // Valor fixo conforme especificado
+        logo: logoFile || undefined,
+      };
 
-    // Limpar formulário
-    setSenhaForm({
-      senhaAtual: "",
-      novaSenha: "",
-      confirmarSenha: "",
-    });
+      await businessService.updateBusiness(idBusiness?.toString() || "1", updateData);
+      
+      setAlert({
+        visible: true,
+        texto: "Dados da empresa atualizados com sucesso!",
+        tipo: "success",
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar empresa:", error);
+      setAlert({
+        visible: true,
+        texto: "Erro ao atualizar dados da empresa. Tente novamente.",
+        tipo: "error",
+      });
+    }
   };
 
-  const handleSubmitNotificacoes = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Simulação de atualização de preferências
-    setAlert({
-      visible: true,
-      texto: "Preferências de notificação salvas!",
-      tipo: "success",
-    });
-  };
 
   const closeAlert = () => {
     setAlert((prev) => ({ ...prev, visible: false }));
@@ -161,42 +155,6 @@ const ConfiguracaoPage = () => {
                         <i className="bx bx-user mr-3"></i> Perfil
                       </button>
                     </li>
-                    <li>
-                      <button
-                        onClick={() => setActiveTab("seguranca")}
-                        className={`flex items-center w-full p-2 rounded-md ${
-                          activeTab === "seguranca"
-                            ? "bg-blue-100 text-blue-700"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <i className="bx bx-lock mr-3"></i> Segurança
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        onClick={() => setActiveTab("notificacoes")}
-                        className={`flex items-center w-full p-2 rounded-md ${
-                          activeTab === "notificacoes"
-                            ? "bg-blue-100 text-blue-700"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <i className="bx bx-bell mr-3"></i> Notificações
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        onClick={() => setActiveTab("integracao")}
-                        className={`flex items-center w-full p-2 rounded-md ${
-                          activeTab === "integracao"
-                            ? "bg-blue-100 text-blue-700"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <i className="bx bx-link mr-3"></i> Integrações
-                      </button>
-                    </li>
                   </ul>
                 </div>
               </div>
@@ -207,41 +165,84 @@ const ConfiguracaoPage = () => {
                 {activeTab === "perfil" && (
                   <div>
                     <h2 className="text-xl font-semibold mb-4">
-                      Informações do Perfil
+                      Dados da Empresa
                     </h2>
-                    <form onSubmit={handleSubmitPerfil} className="space-y-4">
+                    <form onSubmit={handleSubmitEmpresa} className="space-y-6">
+                      {/* Upload de Logo */}
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Logo da Empresa
+                        </label>
+                        <div className="flex items-center space-x-4">
+                          <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                            {logoPreview ? (
+                              <Image
+                                src={logoPreview}
+                                alt="Preview do logo"
+                                width={80}
+                                height={80}
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                            ) : (
+                              <i className="bx bx-image text-gray-400 text-2xl"></i>
+                            )}
+                          </div>
+                          <div>
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              onChange={handleLogoChange}
+                              accept="image/*"
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                            >
+                              Escolher Logo
+                            </button>
+                            <p className="text-xs text-gray-500 mt-1">
+                              PNG, JPG até 2MB
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label
-                            htmlFor="nomeFantasia"
+                            htmlFor="legalName"
                             className="block text-sm font-medium text-gray-700 mb-1"
                           >
-                            Nome Fantasia
+                            Razão Social
                           </label>
                           <input
                             type="text"
-                            id="nomeFantasia"
-                            name="nomeFantasia"
-                            value={perfilForm.nomeFantasia}
-                            onChange={handlePerfilChange}
+                            id="legalName"
+                            name="legalName"
+                            value={empresaForm.legalName}
+                            onChange={handleEmpresaChange}
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
                           />
                         </div>
 
                         <div>
                           <label
-                            htmlFor="email"
+                            htmlFor="appName"
                             className="block text-sm font-medium text-gray-700 mb-1"
                           >
-                            Email
+                            Nome do App/Loja
                           </label>
                           <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value={perfilForm.email}
-                            onChange={handlePerfilChange}
+                            type="text"
+                            id="appName"
+                            name="appName"
+                            value={empresaForm.appName}
+                            onChange={handleEmpresaChange}
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
                           />
                         </div>
 
@@ -256,9 +257,9 @@ const ConfiguracaoPage = () => {
                             type="text"
                             id="cnpj"
                             name="cnpj"
-                            value={perfilForm.cnpj}
-                            onChange={handlePerfilChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={empresaForm.cnpj}
+                            onChange={handleEmpresaChange}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
                             disabled
                           />
                           <p className="text-xs text-gray-500 mt-1">
@@ -268,350 +269,120 @@ const ConfiguracaoPage = () => {
 
                         <div>
                           <label
-                            htmlFor="cep"
+                            htmlFor="cellphone"
                             className="block text-sm font-medium text-gray-700 mb-1"
                           >
-                            CEP
+                            Telefone
                           </label>
                           <input
                             type="text"
-                            id="cep"
-                            name="cep"
-                            value={perfilForm.cep}
-                            onChange={handlePerfilChange}
+                            id="cellphone"
+                            name="cellphone"
+                            value={empresaForm.cellphone}
+                            onChange={handleEmpresaChange}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor="openingHours"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Horário de Funcionamento
+                          </label>
+                          <input
+                            type="text"
+                            id="openingHours"
+                            name="openingHours"
+                            value={empresaForm.openingHours}
+                            onChange={handleEmpresaChange}
+                            placeholder="08:00-18:00"
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
 
                         <div>
                           <label
-                            htmlFor="cidade"
+                            htmlFor="develiveryTime"
                             className="block text-sm font-medium text-gray-700 mb-1"
                           >
-                            Cidade
+                            Tempo de Entrega (minutos)
                           </label>
                           <input
-                            type="text"
-                            id="cidade"
-                            name="cidade"
-                            value={perfilForm.cidade}
-                            onChange={handlePerfilChange}
+                            type="number"
+                            id="develiveryTime"
+                            name="develiveryTime"
+                            value={empresaForm.develiveryTime}
+                            onChange={handleEmpresaChange}
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
 
                         <div>
                           <label
-                            htmlFor="bairro"
+                            htmlFor="deliveryTax"
                             className="block text-sm font-medium text-gray-700 mb-1"
                           >
-                            Bairro
+                            Taxa de Entrega (R$)
                           </label>
                           <input
-                            type="text"
-                            id="bairro"
-                            name="bairro"
-                            value={perfilForm.bairro}
-                            onChange={handlePerfilChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="rua"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                          >
-                            Rua
-                          </label>
-                          <input
-                            type="text"
-                            id="rua"
-                            name="rua"
-                            value={perfilForm.rua}
-                            onChange={handlePerfilChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="numero"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                          >
-                            Número
-                          </label>
-                          <input
-                            type="text"
-                            id="numero"
-                            name="numero"
-                            value={perfilForm.numero}
-                            onChange={handlePerfilChange}
+                            type="number"
+                            step="0.01"
+                            id="deliveryTax"
+                            name="deliveryTax"
+                            value={empresaForm.deliveryTax}
+                            onChange={handleEmpresaChange}
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
                       </div>
 
+                      <div>
+                        <label
+                          htmlFor="description"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Descrição da Empresa
+                        </label>
+                        <textarea
+                          id="description"
+                          name="description"
+                          value={empresaForm.description}
+                          onChange={handleEmpresaChange}
+                          rows={3}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Descreva brevemente sua empresa..."
+                        />
+                      </div>
+
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="delivery"
+                          name="delivery"
+                          checked={empresaForm.delivery}
+                          onChange={handleEmpresaChange}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label
+                          htmlFor="delivery"
+                          className="ml-2 block text-sm text-gray-900"
+                        >
+                          Oferece serviço de entrega
+                        </label>
+                      </div>
+
                       <div className="flex justify-end">
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
                         >
                           Salvar Alterações
                         </button>
                       </div>
                     </form>
-                  </div>
-                )}
-
-                {/* Configurações de segurança */}
-                {activeTab === "seguranca" && (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">
-                      Alterar Senha
-                    </h2>
-                    <form
-                      onSubmit={handleSubmitSenha}
-                      className="space-y-4 max-w-md"
-                    >
-                      <div>
-                        <label
-                          htmlFor="senhaAtual"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Senha Atual
-                        </label>
-                        <input
-                          type="password"
-                          id="senhaAtual"
-                          name="senhaAtual"
-                          value={senhaForm.senhaAtual}
-                          onChange={handleSenhaChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor="novaSenha"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Nova Senha
-                        </label>
-                        <input
-                          type="password"
-                          id="novaSenha"
-                          name="novaSenha"
-                          value={senhaForm.novaSenha}
-                          onChange={handleSenhaChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor="confirmarSenha"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Confirmar Nova Senha
-                        </label>
-                        <input
-                          type="password"
-                          id="confirmarSenha"
-                          name="confirmarSenha"
-                          value={senhaForm.confirmarSenha}
-                          onChange={handleSenhaChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        />
-                      </div>
-
-                      <div className="flex justify-end">
-                        <button
-                          type="submit"
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-                        >
-                          Alterar Senha
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
-
-                {/* Configurações de notificações */}
-                {activeTab === "notificacoes" && (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">
-                      Preferências de Notificação
-                    </h2>
-                    <form
-                      onSubmit={handleSubmitNotificacoes}
-                      className="space-y-6"
-                    >
-                      <div className="space-y-4">
-                        <h3 className="text-md font-medium text-gray-700">
-                          Eventos
-                        </h3>
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id="novoPedido"
-                            name="novoPedido"
-                            checked={notificacoes.novoPedido}
-                            onChange={handleNotificacaoChange}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label
-                            htmlFor="novoPedido"
-                            className="ml-2 block text-sm text-gray-900"
-                          >
-                            Novos pedidos
-                          </label>
-                        </div>
-
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id="statusPedido"
-                            name="statusPedido"
-                            checked={notificacoes.statusPedido}
-                            onChange={handleNotificacaoChange}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label
-                            htmlFor="statusPedido"
-                            className="ml-2 block text-sm text-gray-900"
-                          >
-                            Atualizações de status de pedidos
-                          </label>
-                        </div>
-
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id="promocoes"
-                            name="promocoes"
-                            checked={notificacoes.promocoes}
-                            onChange={handleNotificacaoChange}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label
-                            htmlFor="promocoes"
-                            className="ml-2 block text-sm text-gray-900"
-                          >
-                            Promoções e novidades
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <h3 className="text-md font-medium text-gray-700">
-                          Canais
-                        </h3>
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id="email"
-                            name="email"
-                            checked={notificacoes.email}
-                            onChange={handleNotificacaoChange}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label
-                            htmlFor="email"
-                            className="ml-2 block text-sm text-gray-900"
-                          >
-                            Email
-                          </label>
-                        </div>
-
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id="sistema"
-                            name="sistema"
-                            checked={notificacoes.sistema}
-                            onChange={handleNotificacaoChange}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label
-                            htmlFor="sistema"
-                            className="ml-2 block text-sm text-gray-900"
-                          >
-                            Notificações no sistema
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end">
-                        <button
-                          type="submit"
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-                        >
-                          Salvar Preferências
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
-
-                {/* Configurações de integração */}
-                {activeTab === "integracao" && (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">Integrações</h2>
-                    <p className="text-gray-600 mb-4">
-                      Conecte sua conta Sustenta Bag com outras plataformas e
-                      serviços.
-                    </p>
-
-                    <div className="space-y-4">
-                      <div className="border rounded-lg p-4 flex items-center justify-between">
-                        <div className="flex items-center">
-                          <i className="bx bxl-shopify text-3xl text-[#96bf47] mr-3"></i>
-                          <div>
-                            <h3 className="font-medium">Shopify</h3>
-                            <p className="text-sm text-gray-500">
-                              Sincronize pedidos com sua loja Shopify
-                            </p>
-                          </div>
-                        </div>
-                        <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                          Conectar
-                        </button>
-                      </div>
-
-                      <div className="border rounded-lg p-4 flex items-center justify-between">
-                        <div className="flex items-center">
-                          <i className="bx bxl-whatsapp text-3xl text-[#25D366] mr-3"></i>
-                          <div>
-                            <h3 className="font-medium">WhatsApp Business</h3>
-                            <p className="text-sm text-gray-500">
-                              Receba atualizações via WhatsApp
-                            </p>
-                          </div>
-                        </div>
-                        <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                          Conectar
-                        </button>
-                      </div>
-
-                      <div className="border rounded-lg p-4 flex items-center justify-between">
-                        <div className="flex items-center">
-                          <i className="bx bxs-truck text-3xl text-blue-600 mr-3"></i>
-                          <div>
-                            <h3 className="font-medium">Serviços de Entrega</h3>
-                            <p className="text-sm text-gray-500">
-                              Integre com transportadoras
-                            </p>
-                          </div>
-                        </div>
-                        <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                          Configurar
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
