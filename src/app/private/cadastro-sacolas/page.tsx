@@ -360,7 +360,7 @@ const CadastroSacolasPage = () => {
               Cadastre novos tipos de sacolas sustentáveis para seu catálogo.
             </p>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <div>
                   <label
                     htmlFor="type"
@@ -401,7 +401,7 @@ const CadastroSacolasPage = () => {
                     required
                   />
                 </div>
-                <div>
+                {/* <div>
                   <label
                     htmlFor="status"
                     className="block text-sm font-medium text-gray-700 mb-1"
@@ -418,7 +418,7 @@ const CadastroSacolasPage = () => {
                     <option value={1}>Ativa</option>
                     <option value={0}>Inativa</option>
                   </select>
-                </div>
+                </div> */}
               </div>
               <div>
                 <label

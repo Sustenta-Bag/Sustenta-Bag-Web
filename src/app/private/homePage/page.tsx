@@ -619,7 +619,7 @@ const HomePage = () => {
           </div>
 
           {/* Gráficos */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
               <h2 className="text-lg font-semibold mb-4 flex items-center">
                 <FaChartLine className="text-[#037335] mr-2" />
@@ -655,7 +655,7 @@ const HomePage = () => {
                 )}
               </div>
             </div>
-          </div>
+          </div> */}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-1 bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
@@ -683,7 +683,7 @@ const HomePage = () => {
                   <FaClock className="text-amber-500 mr-2" />
                   Pedidos Pendentes
                 </h2>
-                <ModalComponent
+                {/* <ModalComponent
                   textButton={
                     <div className="bg-[#037335] text-white py-2 px-4 rounded-lg hover:bg-[#025a29] transition-colors flex items-center">
                       <FaPlus className="mr-1.5" />
@@ -699,7 +699,7 @@ const HomePage = () => {
                   }
                 >
                   Preencha o formulário abaixo para sugerir um novo modelo de sacola sustentável. Nossa equipe analisará sua sugestão e entrará em contato em breve.
-                </ModalComponent>
+                </ModalComponent> */}
               </div>
 
               {pedidosPendentes.length > 0 ? (
@@ -793,7 +793,7 @@ const HomePage = () => {
           </div>
 
           {/* Dicas e recursos úteis */}
-          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+          {/* <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <FaLightbulb className="text-amber-500 mr-2" />
               Dicas Sustentáveis
@@ -843,7 +843,7 @@ const HomePage = () => {
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
